@@ -1,11 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { Building2, LayoutDashboard } from 'lucide-react';
+import { Building2, LayoutDashboard, Settings2, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Roles } from '@/lib/roles';
 
 const navByRole = {
   [Roles.SUPER_ADMIN]: [
-    { to: '/super-admin', label: 'Organizations', icon: Building2, end: true },
+    { to: '/super-admin/registrations', label: 'Pre-registered', icon: UserPlus },
+    { to: '/super-admin/organizations', label: 'All organizations', icon: Building2 },
+    { to: '/super-admin/manage', label: 'Manage', icon: Settings2 },
   ],
   [Roles.ADMIN]: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },

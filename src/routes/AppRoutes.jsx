@@ -2,7 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignUpPage } from '@/pages/auth/SignUpPage';
-import { SuperAdminOrganizationsPage } from '@/pages/super-admin/SuperAdminOrganizationsPage';
+import { PreRegisteredPage } from '@/pages/super-admin/PreRegisteredPage';
+import { AllOrganizationsPage } from '@/pages/super-admin/AllOrganizationsPage';
+import { ManageOrganizationPage } from '@/pages/super-admin/ManageOrganizationPage';
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
 import { RecruiterDashboardPage } from '@/pages/recruiter/RecruiterDashboardPage';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
@@ -25,7 +27,10 @@ export function AppRoutes() {
         <Route path="/dashboard" element={<DashboardRedirect />} />
 
         <Route element={<RoleRoute allowedRoles={[Roles.SUPER_ADMIN]} />}>
-          <Route path="/super-admin" element={<SuperAdminOrganizationsPage />} />
+          <Route path="/super-admin" element={<Navigate to="/super-admin/registrations" replace />} />
+          <Route path="/super-admin/registrations" element={<PreRegisteredPage />} />
+          <Route path="/super-admin/organizations" element={<AllOrganizationsPage />} />
+          <Route path="/super-admin/manage" element={<ManageOrganizationPage />} />
         </Route>
 
         <Route element={<RoleRoute allowedRoles={[Roles.ADMIN]} />}>

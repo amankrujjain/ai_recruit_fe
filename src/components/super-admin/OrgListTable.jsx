@@ -6,18 +6,18 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString();
 }
 
-export function OrgTable({ items, loading }) {
+export function OrgListTable({ items, loading, onSelect }) {
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-lg font-semibold">Organizations</h2>
-        <p className="text-sm text-muted">All agencies onboarded on the platform.</p>
+        <h2 className="text-lg font-semibold">Verified organizations</h2>
+        <p className="text-sm text-muted">Active organizations on the platform.</p>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         {loading && items.length === 0 ? (
-          <p className="text-sm text-muted">Loading organizations...</p>
+          <p className="text-sm text-muted">Loading...</p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-muted">No organizations yet. Create your first one above.</p>
+          <p className="text-sm text-muted">No organizations found.</p>
         ) : (
           <table className="w-full text-left text-sm">
             <thead>
@@ -25,18 +25,28 @@ export function OrgTable({ items, loading }) {
                 <th className="pb-3 font-medium">Name</th>
                 <th className="pb-3 font-medium">Location</th>
                 <th className="pb-3 font-medium">Users</th>
+                <th className="pb-3 font-medium">Status</th>
                 <th className="pb-3 font-medium">Created</th>
               </tr>
             </thead>
             <tbody>
               {items.map((org) => (
-                <tr key={org.organizationId} className="border-b border-border/60">
+                <tr
+                  key={org.organizationId}
+                  className="cursor-pointer border-b border-border/60 hover:bg-brand-50/50"
+                  onClick={() => onSelect?.(org.organizationId)}
+                >
                   <td className="py-3 font-medium">{org.organizationName}</td>
                   <td className="py-3 text-muted">
                     {[org.city, org.country?.name].filter(Boolean).join(', ') || '—'}
                   </td>
                   <td className="py-3">
-                    <Badge variant="default">{org._count?.users ?? 0}</Badge>
+                    <Badge>{org._count?.users ?? 0}</Badge>
+                  </td>
+                  <td className="py-3">
+                    <Badge variant={org.isActive ? 'success' : 'muted'}>
+                      {org.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
                   </td>
                   <td className="py-3 text-muted">{formatDate(org.createdAt)}</td>
                 </tr>

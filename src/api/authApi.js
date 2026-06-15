@@ -10,8 +10,14 @@ export const logoutRequest = () => {
   return apiClient.post('/auth/logout', { refreshToken });
 };
 
+export const validateSignupRequest = (token) =>
+  apiClient.get(`/auth/signup/${token}`);
+
+export const completeSignupRequest = (token, password) =>
+  apiClient.post(`/auth/signup/${token}`, { password });
+
 export const validateInviteRequest = (token) =>
-  apiClient.get(`/auth/accept-invite/${token}`);
+  validateSignupRequest(token);
 
 export const acceptInviteRequest = (token, password) =>
-  apiClient.post(`/auth/accept-invite/${token}`, { password });
+  completeSignupRequest(token, password);

@@ -4,8 +4,9 @@ import { toast } from 'sonner';
 import { acceptInviteRequest } from '@/api/authApi';
 import { Button } from '@/components/ui/Button';
 import { PasswordField } from '@/components/auth/PasswordField';
+import { PasswordStrengthRules } from '@/components/auth/PasswordStrengthRules';
 import { InviteWelcomeBanner } from '@/components/auth/InviteWelcomeBanner';
-import { validatePassword, validatePasswordMatch } from '@/lib/passwordRules';
+import { isPasswordValid, validatePassword, validatePasswordMatch } from '@/lib/passwordRules';
 
 export function SignUpForm({ token, inviteInfo }) {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ export function SignUpForm({ token, inviteInfo }) {
   const [confirm, setConfirm] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const canSubmit = isPasswordValid(password) && password === confirm && confirm.length > 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,19 +45,26 @@ export function SignUpForm({ token, inviteInfo }) {
         id="password"
         label="Create password"
         value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          if (errors.password) setErrors((prev) => ({ ...prev, password: null }));
+        }}
         error={errors.password}
-        placeholder="Min 8 chars with mixed case & symbol"
+        placeholder="Create a strong password"
       />
+      <PasswordStrengthRules password={password} />
       <PasswordField
         id="confirm"
         label="Confirm password"
         value={confirm}
-        onChange={(e) => setConfirm(e.target.value)}
+        onChange={(e) => {
+          setConfirm(e.target.value);
+          if (errors.confirm) setErrors((prev) => ({ ...prev, confirm: null }));
+        }}
         error={errors.confirm}
         placeholder="Re-enter your password"
       />
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="w-full" disabled={loading || !canSubmit}>
         {loading ? 'Activating...' : 'Activate account'}
       </Button>
     </form>

@@ -6,7 +6,7 @@ export const Roles = {
 
 export const getDashboardPath = (role) => {
   const paths = {
-    [Roles.SUPER_ADMIN]: '/super-admin',
+    [Roles.SUPER_ADMIN]: '/super-admin/registrations',
     [Roles.ADMIN]: '/admin',
     [Roles.RECRUITER]: '/recruiter',
   };
