@@ -112,7 +112,7 @@ export function ManageOrgPanel({ organizationId, onDeleted }) {
           <div className="flex flex-wrap gap-3 pt-2">
             <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</Button>
             <Button type="button" variant="outline" disabled={deleting} onClick={handleDelete}>
-              {deleting ? 'Deleting...' : 'Soft delete'}
+              {deleting ? 'Deleting...' : 'Delete'}
             </Button>
           </div>
         </form>

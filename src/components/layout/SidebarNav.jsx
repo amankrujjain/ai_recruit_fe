@@ -1,5 +1,14 @@
 import { NavLink } from 'react-router-dom';
-import { Building2, LayoutDashboard, Settings2, UserPlus } from 'lucide-react';
+import {
+  Building2,
+  ClipboardList,
+  CreditCard,
+  FileText,
+  LayoutDashboard,
+  Settings2,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Roles } from '@/lib/roles';
 
@@ -11,6 +20,11 @@ const navByRole = {
   ],
   [Roles.ADMIN]: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    { to: '/admin/recruiters', label: 'Recruiters', icon: Users },
+    { to: '/admin/settings', label: 'Settings', icon: Settings2 },
+    { to: '/admin/templates', label: 'Templates', icon: FileText },
+    { to: '/admin/billing', label: 'Billing', icon: CreditCard },
+    { to: '/admin/audit-logs', label: 'Audit logs', icon: ClipboardList },
   ],
   [Roles.RECRUITER]: [
     { to: '/recruiter', label: 'Dashboard', icon: LayoutDashboard, end: true },

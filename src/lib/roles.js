@@ -13,4 +13,4 @@ export const getDashboardPath = (role) => {
   return paths[role] || '/login';
 };
 
-export const isRole = (user, role) => user?.role === role;
+export const isRole = (account, role) => account?.role === role;

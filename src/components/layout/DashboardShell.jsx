@@ -4,7 +4,7 @@ import { SidebarNav } from '@/components/layout/SidebarNav';
 import { TopBar } from '@/components/layout/TopBar';
 
 export function DashboardShell({ title, children }) {
-  const { user } = useSelector(selectAuth);
+  const { account } = useSelector(selectAuth);
 
   return (
     <div className="flex min-h-screen bg-surface">
@@ -13,7 +13,7 @@ export function DashboardShell({ title, children }) {
           <p className="text-lg font-bold text-brand-700">RecruitAI</p>
           <p className="text-xs text-muted">Recruitment Platform</p>
         </div>
-        <SidebarNav role={user?.role} />
+        <SidebarNav role={account?.role} />
       </aside>
       <div className="flex flex-1 flex-col">
         <TopBar title={title} />

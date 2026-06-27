@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { loginUser, selectAuth, clearAuthError } from '@/store/slices/authSlice';
 import { getDashboardPath } from '@/lib/roles';
@@ -22,7 +22,7 @@ export function LoginForm() {
     const result = await dispatch(loginUser({ email, password }));
     if (loginUser.fulfilled.match(result)) {
       toast.success('Welcome back!');
-      const role = result.payload.user?.role;
+      const role = result.payload.account?.role;
       navigate(getDashboardPath(role), { replace: true });
     } else {
       toast.error(result.payload || 'Invalid credentials');
@@ -49,6 +49,14 @@ export function LoginForm() {
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Enter your password"
       />
+      <div className="flex justify-end">
+        <Link
+          to="/forgot-password"
+          className="text-sm font-semibold text-brand-600 hover:text-brand-700"
+        >
+          Forgot password?
+        </Link>
+      </div>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? 'Signing in...' : 'Sign in'}
       </Button>

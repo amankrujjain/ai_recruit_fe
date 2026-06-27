@@ -21,3 +21,12 @@ export const validateInviteRequest = (token) =>
 
 export const acceptInviteRequest = (token, password) =>
   completeSignupRequest(token, password);
+
+export const forgotPasswordRequest = (email) =>
+  apiClient.post('/auth/forgot-password', { email });
+
+export const validateResetTokenRequest = (token) =>
+  apiClient.get(`/auth/reset-password/${token}`);
+
+export const resetPasswordRequest = (token, password) =>
+  apiClient.post('/auth/reset-password', { token, password });

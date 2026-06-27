@@ -41,7 +41,7 @@ export function OrgListTable({ items, loading, onSelect }) {
                     {[org.city, org.country?.name].filter(Boolean).join(', ') || '—'}
                   </td>
                   <td className="py-3">
-                    <Badge>{org._count?.users ?? 0}</Badge>
+                    <Badge>{org._count?.accounts ?? 0}</Badge>
                   </td>
                   <td className="py-3">
                     <Badge variant={org.isActive ? 'success' : 'muted'}>

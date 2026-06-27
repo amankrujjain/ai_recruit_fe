@@ -4,8 +4,8 @@ import { selectAuth } from '@/store/slices/authSlice';
 import { getDashboardPath } from '@/lib/roles';
 
 export function RoleRoute({ allowedRoles }) {
-  const { user } = useSelector(selectAuth);
-  const role = user?.role;
+  const { account } = useSelector(selectAuth);
+  const role = account?.role;
 
   if (!role || !allowedRoles.includes(role)) {
     return <Navigate to={getDashboardPath(role)} replace />;
