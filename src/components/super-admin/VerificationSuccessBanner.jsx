@@ -2,22 +2,23 @@ import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'sonner';
 import { Copy, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { clearLastCreated, selectOrganizations } from '@/store/slices/organizationSlice';
+import {
+  clearLastRegistration,
+  selectRegistrations,
+} from '@/store/slices/registrationSlice';
 
-const toSignupUrl = (inviteUrl) => inviteUrl || '';
-
-export function InviteSuccessBanner() {
+export function VerificationSuccessBanner() {
   const dispatch = useDispatch();
-  const { lastCreated } = useSelector(selectOrganizations);
+  const { lastCreated } = useSelector(selectRegistrations);
 
   if (!lastCreated?.invitation) return null;
 
-  const { organization, adminUser, invitation } = lastCreated;
-  const signupUrl = toSignupUrl(invitation.inviteUrl);
+  const { registration, invitation } = lastCreated;
+  const signupUrl = invitation.inviteUrl || '';
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(signupUrl);
-    toast.success('Invite link copied');
+    toast.success('Verification link copied');
   };
 
   return (
@@ -25,10 +26,10 @@ export function InviteSuccessBanner() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-semibold text-emerald-800">
-            {organization.organizationName} created
+            {registration.organizationName} — pending verification
           </p>
           <p className="mt-1 text-sm text-emerald-700">
-            Invitation sent to {adminUser.email}
+            Link sent to {invitation.email}
           </p>
           <p className="mt-2 break-all text-xs text-emerald-600">{signupUrl}</p>
         </div>
@@ -37,7 +38,7 @@ export function InviteSuccessBanner() {
             <Copy className="mr-1 h-3.5 w-3.5" />
             Copy link
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => dispatch(clearLastCreated())}>
+          <Button variant="ghost" size="sm" onClick={() => dispatch(clearLastRegistration())}>
             <X className="h-4 w-4" />
           </Button>
         </div>

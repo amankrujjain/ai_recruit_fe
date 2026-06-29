@@ -1,17 +1,35 @@
 import { NavLink } from 'react-router-dom';
-import { Building2, LayoutDashboard } from 'lucide-react';
+import {
+  Building2,
+  Briefcase,
+  ClipboardList,
+  CreditCard,
+  FileText,
+  LayoutDashboard,
+  Settings2,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Roles } from '@/lib/roles';
 
 const navByRole = {
   [Roles.SUPER_ADMIN]: [
-    { to: '/super-admin', label: 'Organizations', icon: Building2, end: true },
+    { to: '/super-admin/registrations', label: 'Pre-registered', icon: UserPlus },
+    { to: '/super-admin/organizations', label: 'All organizations', icon: Building2 },
+    { to: '/super-admin/manage', label: 'Manage', icon: Settings2 },
   ],
   [Roles.ADMIN]: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    { to: '/admin/recruiters', label: 'Recruiters', icon: Users },
+    { to: '/admin/settings', label: 'Settings', icon: Settings2 },
+    { to: '/admin/templates', label: 'Templates', icon: FileText },
+    { to: '/admin/billing', label: 'Billing', icon: CreditCard },
+    { to: '/admin/audit-logs', label: 'Audit logs', icon: ClipboardList },
   ],
   [Roles.RECRUITER]: [
     { to: '/recruiter', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    { to: '/recruiter/jobs', label: 'Jobs', icon: Briefcase },
   ],
 };
 

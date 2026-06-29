@@ -18,6 +18,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem(storageKeys.accessToken);
       localStorage.removeItem(storageKeys.refreshToken);
+      localStorage.removeItem(storageKeys.account);
       localStorage.removeItem(storageKeys.user);
     }
     return Promise.reject(error);

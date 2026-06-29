@@ -6,11 +6,11 @@ export const Roles = {
 
 export const getDashboardPath = (role) => {
   const paths = {
-    [Roles.SUPER_ADMIN]: '/super-admin',
+    [Roles.SUPER_ADMIN]: '/super-admin/registrations',
     [Roles.ADMIN]: '/admin',
     [Roles.RECRUITER]: '/recruiter',
   };
   return paths[role] || '/login';
 };
 
-export const isRole = (user, role) => user?.role === role;
+export const isRole = (account, role) => account?.role === role;

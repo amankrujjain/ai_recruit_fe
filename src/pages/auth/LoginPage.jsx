@@ -12,9 +12,6 @@ export function LoginPage() {
       </CardHeader>
       <CardContent>
         <LoginForm />
-        <p className="mt-6 text-center text-sm text-muted">
-          Activate your account using the invitation link sent to your email.
-        </p>
       </CardContent>
     </Card>
   );

@@ -2,6 +2,9 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
   createOrganizationRequest,
   listOrganizationsRequest,
+  getOrganizationRequest,
+  updateOrganizationRequest,
+  deleteOrganizationRequest,
 } from '@/api/organizationApi';
 
 export const fetchOrganizations = createAsyncThunk(
@@ -23,7 +26,43 @@ export const createOrganization = createAsyncThunk(
       const { data } = await createOrganizationRequest(payload);
       return data.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to create organization');
+      return rejectWithValue(err.response?.data?.message || 'Failed to send verification');
+    }
+  }
+);
+
+export const fetchOrganizationById = createAsyncThunk(
+  'organizations/get',
+  async (organizationId, { rejectWithValue }) => {
+    try {
+      const { data } = await getOrganizationRequest(organizationId);
+      return data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to load organization');
+    }
+  }
+);
+
+export const updateOrganization = createAsyncThunk(
+  'organizations/update',
+  async ({ organizationId, payload }, { rejectWithValue }) => {
+    try {
+      const { data } = await updateOrganizationRequest(organizationId, payload);
+      return data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to update organization');
+    }
+  }
+);
+
+export const deleteOrganization = createAsyncThunk(
+  'organizations/delete',
+  async (organizationId, { rejectWithValue }) => {
+    try {
+      await deleteOrganizationRequest(organizationId);
+      return organizationId;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to delete organization');
     }
   }
 );
@@ -33,13 +72,15 @@ const organizationSlice = createSlice({
   initialState: {
     items: [],
     pagination: null,
+    selected: null,
     loading: false,
+    saving: false,
+    deleting: false,
     creating: false,
-    lastCreated: null,
     error: null,
   },
   reducers: {
-    clearLastCreated: (state) => { state.lastCreated = null; },
+    clearSelectedOrg: (state) => { state.selected = null; },
     clearOrgError: (state) => { state.error = null; },
   },
   extraReducers: (builder) => {
@@ -54,18 +95,37 @@ const organizationSlice = createSlice({
         s.loading = false;
         s.error = a.payload;
       })
-      .addCase(createOrganization.pending, (s) => { s.creating = true; })
-      .addCase(createOrganization.fulfilled, (s, a) => {
-        s.creating = false;
-        s.lastCreated = a.payload;
+      .addCase(fetchOrganizationById.pending, (s) => { s.loading = true; })
+      .addCase(fetchOrganizationById.fulfilled, (s, a) => {
+        s.loading = false;
+        s.selected = a.payload;
       })
-      .addCase(createOrganization.rejected, (s, a) => {
-        s.creating = false;
+      .addCase(fetchOrganizationById.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.payload;
+      })
+      .addCase(updateOrganization.pending, (s) => { s.saving = true; })
+      .addCase(updateOrganization.fulfilled, (s, a) => {
+        s.saving = false;
+        s.selected = a.payload;
+      })
+      .addCase(updateOrganization.rejected, (s, a) => {
+        s.saving = false;
+        s.error = a.payload;
+      })
+      .addCase(deleteOrganization.pending, (s) => { s.deleting = true; })
+      .addCase(deleteOrganization.fulfilled, (s, a) => {
+        s.deleting = false;
+        s.items = s.items.filter((o) => o.organizationId !== a.payload);
+        s.selected = null;
+      })
+      .addCase(deleteOrganization.rejected, (s, a) => {
+        s.deleting = false;
         s.error = a.payload;
       });
   },
 });
 
-export const { clearLastCreated, clearOrgError } = organizationSlice.actions;
+export const { clearSelectedOrg, clearOrgError } = organizationSlice.actions;
 export const selectOrganizations = (state) => state.organizations;
 export default organizationSlice.reducer;

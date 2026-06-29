@@ -6,6 +6,18 @@ import {
 } from '@/api/authApi';
 import { storageKeys } from '@/lib/constants';
 
+const loadSavedAccount = () => {
+  const raw = localStorage.getItem(storageKeys.account)
+    || localStorage.getItem(storageKeys.user);
+  if (!raw) return null;
+
+  const parsed = JSON.parse(raw);
+  if (parsed.userId && !parsed.accountId) {
+    parsed.accountId = parsed.userId;
+  }
+  return parsed;
+};
+
 export const loginUser = createAsyncThunk(
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
@@ -34,12 +46,12 @@ export const logoutUser = createAsyncThunk('auth/logout', async () => {
   try { await logoutRequest(); } catch { /* ignore */ }
   localStorage.removeItem(storageKeys.accessToken);
   localStorage.removeItem(storageKeys.refreshToken);
+  localStorage.removeItem(storageKeys.account);
   localStorage.removeItem(storageKeys.user);
 });
 
-const savedUser = localStorage.getItem(storageKeys.user);
 const initialState = {
-  user: savedUser ? JSON.parse(savedUser) : null,
+  account: loadSavedAccount(),
   token: localStorage.getItem(storageKeys.accessToken),
   loading: false,
   error: null,
@@ -58,26 +70,28 @@ const authSlice = createSlice({
       .addCase(loginUser.pending, (s) => { s.loading = true; s.error = null; })
       .addCase(loginUser.fulfilled, (s, a) => {
         s.loading = false;
-        s.user = a.payload.user;
+        s.account = a.payload.account;
         s.token = a.payload.accessToken;
         localStorage.setItem(storageKeys.accessToken, a.payload.accessToken);
         localStorage.setItem(storageKeys.refreshToken, a.payload.refreshToken);
-        localStorage.setItem(storageKeys.user, JSON.stringify(a.payload.user));
+        localStorage.setItem(storageKeys.account, JSON.stringify(a.payload.account));
+        localStorage.removeItem(storageKeys.user);
       })
       .addCase(loginUser.rejected, (s, a) => {
         s.loading = false;
         s.error = a.payload;
       })
       .addCase(fetchProfile.fulfilled, (s, a) => {
-        s.user = a.payload;
-        localStorage.setItem(storageKeys.user, JSON.stringify(a.payload));
+        s.account = a.payload;
+        localStorage.setItem(storageKeys.account, JSON.stringify(a.payload));
+        localStorage.removeItem(storageKeys.user);
       })
       .addCase(fetchProfile.rejected, (s) => {
-        s.user = null;
+        s.account = null;
         s.token = null;
       })
       .addCase(logoutUser.fulfilled, (s) => {
-        s.user = null;
+        s.account = null;
         s.token = null;
       });
   },
