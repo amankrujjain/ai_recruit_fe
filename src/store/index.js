@@ -5,6 +5,9 @@ import registrationReducer from './slices/registrationSlice';
 import recruitersReducer from './slices/recruitersSlice';
 import adminOrgReducer from './slices/adminOrgSlice';
 import countryReducer from './slices/countrySlice';
+import jobsReducer from './slices/jobsSlice';
+import candidatesReducer from './slices/candidatesSlice';
+import recruitmentReducer from './slices/recruitmentSlice';
 
 const store = configureStore({
   reducer: {
@@ -14,6 +17,9 @@ const store = configureStore({
     recruiters: recruitersReducer,
     adminOrg: adminOrgReducer,
     countries: countryReducer,
+    jobs: jobsReducer,
+    candidates: candidatesReducer,
+    recruitment: recruitmentReducer,
   },
 });
 

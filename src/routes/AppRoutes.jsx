@@ -14,6 +14,9 @@ import { AdminTemplatesPage } from '@/pages/admin/AdminTemplatesPage';
 import { AdminBillingPage } from '@/pages/admin/AdminBillingPage';
 import { AdminAuditLogsPage } from '@/pages/admin/AdminAuditLogsPage';
 import { RecruiterDashboardPage } from '@/pages/recruiter/RecruiterDashboardPage';
+import { RecruiterJobsPage } from '@/pages/recruiter/RecruiterJobsPage';
+import { JobFormPage } from '@/pages/recruiter/JobFormPage';
+import { JobDetailPage } from '@/pages/recruiter/JobDetailPage';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { PublicRoute } from '@/routes/PublicRoute';
 import { RoleRoute } from '@/routes/RoleRoute';
@@ -56,6 +59,10 @@ export function AppRoutes() {
 
         <Route element={<RoleRoute allowedRoles={[Roles.RECRUITER]} />}>
           <Route path="/recruiter" element={<RecruiterDashboardPage />} />
+          <Route path="/recruiter/jobs" element={<RecruiterJobsPage />} />
+          <Route path="/recruiter/jobs/new" element={<JobFormPage />} />
+          <Route path="/recruiter/jobs/:jobId/edit" element={<JobFormPage />} />
+          <Route path="/recruiter/jobs/:jobId" element={<JobDetailPage />} />
         </Route>
       </Route>
 

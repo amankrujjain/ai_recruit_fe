@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   Building2,
+  Briefcase,
   ClipboardList,
   CreditCard,
   FileText,
@@ -28,6 +29,7 @@ const navByRole = {
   ],
   [Roles.RECRUITER]: [
     { to: '/recruiter', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    { to: '/recruiter/jobs', label: 'Jobs', icon: Briefcase },
   ],
 };
 
