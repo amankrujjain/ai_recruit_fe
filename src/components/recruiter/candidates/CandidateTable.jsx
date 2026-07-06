@@ -1,4 +1,6 @@
 import { CandidateStatusBadge } from '@/components/recruiter/candidates/CandidateStatusBadge';
+import { Badge } from '@/components/ui/Badge';
+import { outreachPipelineLabels } from '@/lib/outreachPipelineStatus';
 
 function formatScore(value) {
   if (value == null) return '—';
@@ -43,6 +45,7 @@ export function CandidateTable({
             <th className="px-3 py-2 font-medium">Email</th>
             <th className="px-3 py-2 font-medium">Match</th>
             <th className="px-3 py-2 font-medium">Status</th>
+            <th className="px-3 py-2 font-medium">Outreach</th>
             <th className="px-3 py-2 font-medium">Selected</th>
           </tr>
         </thead>
@@ -65,6 +68,16 @@ export function CandidateTable({
                 <td className="px-3 py-3">{formatScore(row.overallMatch)}</td>
                 <td className="px-3 py-3">
                   <CandidateStatusBadge status={row.status} />
+                </td>
+                <td className="px-3 py-3">
+                  {row.outreachRecords?.[0] ? (
+                    <Badge variant="default">
+                      {outreachPipelineLabels[row.outreachRecords[0].pipelineStatus]
+                        || row.outreachRecords[0].pipelineStatus}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted">—</span>
+                  )}
                 </td>
                 <td className="px-3 py-3 text-muted">
                   {row.manuallySelected ? 'Yes' : '—'}
