@@ -17,6 +17,8 @@ import { RecruiterDashboardPage } from '@/pages/recruiter/RecruiterDashboardPage
 import { RecruiterJobsPage } from '@/pages/recruiter/RecruiterJobsPage';
 import { JobFormPage } from '@/pages/recruiter/JobFormPage';
 import { JobDetailPage } from '@/pages/recruiter/JobDetailPage';
+import { CandidateOutreachPage } from '@/pages/candidate/CandidateOutreachPage';
+import { CandidateSchedulePage } from '@/pages/candidate/CandidateSchedulePage';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { PublicRoute } from '@/routes/PublicRoute';
 import { RoleRoute } from '@/routes/RoleRoute';
@@ -29,6 +31,12 @@ export function AppRoutes() {
       <Route element={<AuthLayout />}>
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+      </Route>
+
+      {/* Public token links — no login; works even when staff are logged in */}
+      <Route element={<AuthLayout />}>
+        <Route path="/candidate/outreach/:token" element={<CandidateOutreachPage />} />
+        <Route path="/candidate/schedule/:token" element={<CandidateSchedulePage />} />
       </Route>
 
       <Route element={<PublicRoute />}>

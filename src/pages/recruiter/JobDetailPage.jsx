@@ -102,7 +102,7 @@ export function JobDetailPage() {
       payload: { mode: RankingMode.MANUAL, candidateJobIds: [...selectedIds] },
     }));
     if (selectCandidates.fulfilled.match(result)) {
-      toast.success(`${result.payload.selected} candidate(s) selected for outreach`);
+      toast.success(`${result.payload.selected} candidate(s) selected — outreach email queued`);
       setSelectedIds(new Set());
       loadCandidates();
     } else toast.error(result.payload || 'Selection failed');
