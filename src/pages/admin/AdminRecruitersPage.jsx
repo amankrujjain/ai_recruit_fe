@@ -33,7 +33,7 @@ export function AdminRecruitersPage() {
     <DashboardShell title="Recruiters">
       <div className="mx-auto max-w-6xl space-y-6">
         <PageHeader title="Team recruiters" subtitle="Invite and manage recruiters in your organization." />
-        <RecruiterInviteBanner />
+        {/* <RecruiterInviteBanner /> */}
         <InviteRecruiterForm onInvited={load} />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <SearchInput value={search} onChange={setSearch} placeholder="Search recruiters..." />
