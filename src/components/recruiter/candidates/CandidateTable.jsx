@@ -1,5 +1,7 @@
+import { Trash2 } from 'lucide-react';
 import { CandidateStatusBadge } from '@/components/recruiter/candidates/CandidateStatusBadge';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { outreachPipelineLabels } from '@/lib/outreachPipelineStatus';
 
 function formatScore(value) {
@@ -11,8 +13,10 @@ export function CandidateTable({
   items,
   loading,
   selectedIds,
+  deletingId,
   onToggle,
   onToggleAll,
+  onDelete,
 }) {
   if (loading) {
     return <p className="py-8 text-center text-sm text-muted">Loading candidates…</p>;
@@ -30,7 +34,7 @@ export function CandidateTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="w-full min-w-[720px] text-left text-sm">
         <thead>
           <tr className="border-b border-border text-muted">
             <th className="px-3 py-2">
@@ -47,12 +51,14 @@ export function CandidateTable({
             <th className="px-3 py-2 font-medium">Status</th>
             <th className="px-3 py-2 font-medium">Outreach</th>
             <th className="px-3 py-2 font-medium">Selected</th>
+            <th className="px-3 py-2 font-medium">Actions</th>
           </tr>
         </thead>
         <tbody>
           {items.map((row) => {
             const id = row.candidateJobId;
             const candidate = row.candidate || {};
+            const deleting = deletingId === id;
             return (
               <tr key={id} className="border-b border-border/60 hover:bg-brand-50/40">
                 <td className="px-3 py-3">
@@ -81,6 +87,20 @@ export function CandidateTable({
                 </td>
                 <td className="px-3 py-3 text-muted">
                   {row.manuallySelected ? 'Yes' : '—'}
+                </td>
+                <td className="px-3 py-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    disabled={deleting}
+                    aria-label={`Remove ${candidate.name || 'candidate'}`}
+                    onClick={() => onDelete?.(row)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="ml-1">{deleting ? 'Removing…' : 'Delete'}</span>
+                  </Button>
                 </td>
               </tr>
             );

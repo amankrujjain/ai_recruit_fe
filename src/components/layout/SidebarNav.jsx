@@ -23,13 +23,13 @@ const navByRole = {
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/admin/recruiters', label: 'Recruiters', icon: Users },
     { to: '/admin/settings', label: 'Settings', icon: Settings2 },
-    { to: '/admin/templates', label: 'Templates', icon: FileText },
     { to: '/admin/billing', label: 'Billing', icon: CreditCard },
     { to: '/admin/audit-logs', label: 'Audit logs', icon: ClipboardList },
   ],
   [Roles.RECRUITER]: [
     { to: '/recruiter', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/recruiter/jobs', label: 'Jobs', icon: Briefcase },
+    { to: '/recruiter/templates', label: 'Templates', icon: FileText },
   ],
 };
 

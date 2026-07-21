@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { UserStatus } from '@/lib/userStatus';
 import {
   deleteRecruiter,
@@ -14,6 +16,7 @@ export function RecruiterRowActions({ recruiter }) {
   const dispatch = useDispatch();
   const { actionId } = useSelector(selectRecruiters);
   const busy = actionId === recruiter.accountId;
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const run = async (action, label) => {
     const result = await dispatch(action(recruiter.accountId));
@@ -21,9 +24,9 @@ export function RecruiterRowActions({ recruiter }) {
     else toast.error(result.payload || 'Action failed');
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Delete ${recruiter.email}?`)) return;
+  const handleDeleteConfirm = async () => {
     await run(deleteRecruiter, 'Recruiter deleted');
+    setConfirmOpen(false);
   };
 
   return (
@@ -33,8 +36,12 @@ export function RecruiterRowActions({ recruiter }) {
           <Button variant="outline" size="sm" onClick={() => run(disableRecruiter, 'Recruiter disabled')}>
             Disable
           </Button>
-          <Button variant="outline" size="sm" disabled={busy}
-            onClick={() => run(resetRecruiterPassword, 'Password reset email sent')}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => run(resetRecruiterPassword, 'Password reset email sent')}
+          >
             Reset pwd
           </Button>
         </>
@@ -44,7 +51,18 @@ export function RecruiterRowActions({ recruiter }) {
           Enable
         </Button>
       )}
-      <Button variant="ghost" size="sm" onClick={handleDelete}>Delete</Button>
+      <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(true)}>Delete</Button>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete recruiter?"
+        description={`Delete ${recruiter.email}? This will deactivate their access.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={busy}
+        onOpenChange={setConfirmOpen}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }
