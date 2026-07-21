@@ -34,12 +34,13 @@ export function OrgDetailsFields({ form, onChange, countries, countriesLoading }
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="city">City (optional)</Label>
+          <Label htmlFor="city">City</Label>
           <Input
             id="city"
             value={form.city}
             onChange={onChange('city')}
             placeholder="London"
+            required
           />
         </div>
       </div>
