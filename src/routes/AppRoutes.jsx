@@ -10,11 +10,11 @@ import { ManageOrganizationPage } from '@/pages/super-admin/ManageOrganizationPa
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
 import { AdminRecruitersPage } from '@/pages/admin/AdminRecruitersPage';
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
-import { AdminTemplatesPage } from '@/pages/admin/AdminTemplatesPage';
 import { AdminBillingPage } from '@/pages/admin/AdminBillingPage';
 import { AdminAuditLogsPage } from '@/pages/admin/AdminAuditLogsPage';
 import { RecruiterDashboardPage } from '@/pages/recruiter/RecruiterDashboardPage';
 import { RecruiterJobsPage } from '@/pages/recruiter/RecruiterJobsPage';
+import { RecruiterTemplatesPage } from '@/pages/recruiter/RecruiterTemplatesPage';
 import { JobFormPage } from '@/pages/recruiter/JobFormPage';
 import { JobDetailPage } from '@/pages/recruiter/JobDetailPage';
 import { CandidateOutreachPage } from '@/pages/candidate/CandidateOutreachPage';
@@ -60,7 +60,7 @@ export function AppRoutes() {
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/recruiters" element={<AdminRecruitersPage />} />
           <Route path="/admin/settings" element={<AdminSettingsPage />} />
-          <Route path="/admin/templates" element={<AdminTemplatesPage />} />
+          <Route path="/admin/templates" element={<Navigate to="/admin" replace />} />
           <Route path="/admin/billing" element={<AdminBillingPage />} />
           <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
         </Route>
@@ -71,6 +71,7 @@ export function AppRoutes() {
           <Route path="/recruiter/jobs/new" element={<JobFormPage />} />
           <Route path="/recruiter/jobs/:jobId/edit" element={<JobFormPage />} />
           <Route path="/recruiter/jobs/:jobId" element={<JobDetailPage />} />
+          <Route path="/recruiter/templates" element={<RecruiterTemplatesPage />} />
         </Route>
       </Route>
 

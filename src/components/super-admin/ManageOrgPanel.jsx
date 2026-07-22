@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { selectCountries } from '@/store/slices/countrySlice';
 import {
   deleteOrganization,
@@ -19,6 +20,7 @@ export function ManageOrgPanel({ organizationId, onDeleted }) {
   const { items: countries } = useSelector(selectCountries);
   const { selected, loading, saving, deleting } = useSelector(selectOrganizations);
   const [form, setForm] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (organizationId) dispatch(fetchOrganizationById(organizationId));
@@ -65,8 +67,8 @@ export function ManageOrgPanel({ organizationId, onDeleted }) {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete ${selected.organizationName}? This cannot be undone.`)) return;
     const result = await dispatch(deleteOrganization(organizationId));
+    setConfirmOpen(false);
     if (deleteOrganization.fulfilled.match(result)) {
       toast.success('Organization deleted');
       onDeleted?.();
@@ -111,12 +113,23 @@ export function ManageOrgPanel({ organizationId, onDeleted }) {
           </div>
           <div className="flex flex-wrap gap-3 pt-2">
             <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</Button>
-            <Button type="button" variant="outline" disabled={deleting} onClick={handleDelete}>
-              {deleting ? 'Deleting...' : 'Delete'}
+            <Button type="button" variant="outline" disabled={deleting} onClick={() => setConfirmOpen(true)}>
+              Delete
             </Button>
           </div>
         </form>
       </CardContent>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete organization?"
+        description={`Delete ${selected.organizationName}? This soft-deletes the organization and cannot be easily undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        onOpenChange={setConfirmOpen}
+        onConfirm={handleDelete}
+      />
     </Card>
   );
 }

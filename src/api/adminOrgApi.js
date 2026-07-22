@@ -6,6 +6,14 @@ export const getMyOrganizationRequest = () =>
 export const updateOrgSettingsRequest = (payload) =>
   apiClient.patch('/organizations/me/settings', payload);
 
+export const uploadOrgLogoRequest = (file) => {
+  const form = new FormData();
+  form.append('file', file);
+  return apiClient.post('/organizations/me/logo', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
 export const updateEmailTemplateRequest = (templateId, payload) =>
   apiClient.patch(`/organizations/me/email-templates/${templateId}`, payload);
 

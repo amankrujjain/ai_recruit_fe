@@ -14,6 +14,9 @@ export const listCandidatesRequest = (jobId, params) =>
 export const selectCandidatesRequest = (jobId, payload) =>
   apiClient.post(`/jobs/${jobId}/candidates/select`, payload);
 
+export const deleteCandidateRequest = (jobId, candidateJobId) =>
+  apiClient.delete(`/jobs/${jobId}/candidates/${candidateJobId}`);
+
 export const uploadExcelRequest = (jobId, file) => {
   const form = new FormData();
   form.append('file', file);
@@ -29,3 +32,10 @@ export const uploadResumeRequest = (jobId, file) => {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
+
+/** Lightweight poll for resume parse progress (not the full candidate list). */
+export const getResumeStatusRequest = (jobId, resumeFileIds = []) =>
+  apiClient.get(`/jobs/${jobId}/resumes/status`, {
+    params: { ids: resumeFileIds.join(',') },
+  });
+

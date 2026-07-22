@@ -4,6 +4,7 @@ import {
   uploadExcelRequest,
   uploadResumeRequest,
   selectCandidatesRequest,
+  deleteCandidateRequest,
 } from '@/api/jobApi';
 
 export const fetchCandidates = createAsyncThunk(
@@ -35,7 +36,7 @@ export const uploadResume = createAsyncThunk(
   async ({ jobId, file }, { rejectWithValue }) => {
     try {
       const { data } = await uploadResumeRequest(jobId, file);
-      return data.data;
+      return { ...data.data, fileName: file.name };
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Resume upload failed');
     }
@@ -54,6 +55,18 @@ export const selectCandidates = createAsyncThunk(
   }
 );
 
+export const deleteCandidate = createAsyncThunk(
+  'candidates/delete',
+  async ({ jobId, candidateJobId }, { rejectWithValue }) => {
+    try {
+      const { data } = await deleteCandidateRequest(jobId, candidateJobId);
+      return { ...data.data, candidateJobId };
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to remove candidate');
+    }
+  }
+);
+
 const candidatesSlice = createSlice({
   name: 'candidates',
   initialState: {
@@ -62,6 +75,7 @@ const candidatesSlice = createSlice({
     loading: false,
     uploading: false,
     selecting: false,
+    deletingId: null,
     error: null,
   },
   reducers: {
@@ -82,12 +96,29 @@ const candidatesSlice = createSlice({
       .addCase(uploadExcel.pending, (s) => { s.uploading = true; })
       .addCase(uploadExcel.fulfilled, (s) => { s.uploading = false; })
       .addCase(uploadExcel.rejected, (s, a) => { s.uploading = false; s.error = a.payload; })
-      .addCase(uploadResume.pending, (s) => { s.uploading = true; })
+      .addCase(uploadResume.pending, (s) => { s.uploading = true; s.error = null; })
       .addCase(uploadResume.fulfilled, (s) => { s.uploading = false; })
       .addCase(uploadResume.rejected, (s, a) => { s.uploading = false; s.error = a.payload; })
       .addCase(selectCandidates.pending, (s) => { s.selecting = true; })
       .addCase(selectCandidates.fulfilled, (s) => { s.selecting = false; })
-      .addCase(selectCandidates.rejected, (s, a) => { s.selecting = false; s.error = a.payload; });
+      .addCase(selectCandidates.rejected, (s, a) => { s.selecting = false; s.error = a.payload; })
+      .addCase(deleteCandidate.pending, (s, a) => {
+        s.deletingId = a.meta.arg.candidateJobId;
+      })
+      .addCase(deleteCandidate.fulfilled, (s, a) => {
+        s.deletingId = null;
+        s.items = s.items.filter((row) => row.candidateJobId !== a.payload.candidateJobId);
+        if (s.pagination) {
+          s.pagination = {
+            ...s.pagination,
+            total: Math.max(0, (s.pagination.total || 0) - 1),
+          };
+        }
+      })
+      .addCase(deleteCandidate.rejected, (s, a) => {
+        s.deletingId = null;
+        s.error = a.payload;
+      });
   },
 });
 
