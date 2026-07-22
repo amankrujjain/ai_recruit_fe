@@ -66,6 +66,18 @@ export const deactivateJob = createAsyncThunk(
   }
 );
 
+export const activateJob = createAsyncThunk(
+  'jobs/activate',
+  async (jobId, { rejectWithValue }) => {
+    try {
+      const { data } = await updateJobRequest(jobId, { isActive: true });
+      return data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to activate job');
+    }
+  }
+);
+
 const jobsSlice = createSlice({
   name: 'jobs',
   initialState: {
@@ -105,7 +117,13 @@ const jobsSlice = createSlice({
       .addCase(deactivateJob.fulfilled, (s, a) => {
         s.current = a.payload;
         s.items = s.items.map((j) => (j.jobId === a.payload.jobId ? a.payload : j));
-      });
+      })
+      .addCase(activateJob.fulfilled, (s, a) => {
+  s.current = a.payload;
+  s.items = s.items.map((j) =>
+    j.jobId === a.payload.jobId ? a.payload : j
+  );
+ });
   },
 });
 

@@ -15,6 +15,7 @@ import { RankingMode } from '@/lib/rankingMode';
 import {
   fetchJob,
   deactivateJob,
+  activateJob,
   selectJobs,
   clearCurrentJob,
 } from '@/store/slices/jobsSlice';
@@ -66,6 +67,18 @@ export function JobDetailPage() {
     if (deactivateJob.fulfilled.match(result)) toast.success('Job deactivated');
     else toast.error(result.payload || 'Failed to deactivate');
   };
+
+  const handleActivate = async () => {
+  if (!window.confirm('Activate this job? It will start accepting new candidates again.')) return;
+
+  const result = await dispatch(activateJob(jobId));
+
+  if (activateJob.fulfilled.match(result)) {
+    toast.success('Job activated');
+  } else {
+    toast.error(result.payload || 'Failed to activate');
+  }
+};
 
   const handleExcel = async (file) => {
     const result = await dispatch(uploadExcel({ jobId, file }));
@@ -130,7 +143,13 @@ export function JobDetailPage() {
   return (
     <DashboardShell title={job.jobTitle}>
       <div className="mx-auto max-w-6xl space-y-6">
-        <JobDetailHeader job={job} onDeactivate={handleDeactivate} deactivating={saving} />
+        {/* <JobDetailHeader job={job} onDeactivate={handleDeactivate} deactivating={saving} /> */}
+        <JobDetailHeader
+  job={job}
+  onDeactivate={handleDeactivate}
+  onActivate={handleActivate}
+  deactivating={saving}
+/>
 
         <div className="flex gap-2 border-b border-border">
           {TABS.map(({ id, label }) => (

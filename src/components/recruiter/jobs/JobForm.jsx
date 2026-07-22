@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Select } from '@/components/ui/Select';
+import { TagInput } from '@/components/ui/TagInput';
 
 const emptyForm = {
   jobTitle: '',
@@ -12,10 +13,10 @@ const emptyForm = {
   experienceMax: 5,
   salaryMin: '',
   salaryMax: '',
-  location: '',
+  location: [],
   employmentType: EmploymentType.FULL_TIME,
-  mandatorySkills: '',
-  preferredSkills: '',
+  mandatorySkills: [],
+  preferredSkills: [],
 };
 
 function toForm(job) {
@@ -27,19 +28,19 @@ function toForm(job) {
     experienceMax: job.experienceMax ?? 5,
     salaryMin: job.salaryMin ?? '',
     salaryMax: job.salaryMax ?? '',
-    location: job.location || '',
+    location: job.location || [],
     employmentType: job.employmentType || EmploymentType.FULL_TIME,
-    mandatorySkills: (job.mandatorySkills || []).join(', '),
-    preferredSkills: (job.preferredSkills || []).join(', '),
+    mandatorySkills: job?.mandatorySkills || [],
+    preferredSkills: job?.preferredSkills || [],
   };
 }
 
-function parseSkills(value) {
-  return value
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
+// function parseSkills(value) {
+//   return value
+//     .split(',')
+//     .map((s) => s.trim())
+//     .filter(Boolean);
+// }
 
 export function JobForm({ initial, saving, onSubmit, onCancel }) {
   const [form, setForm] = useState(() => toForm(initial));
@@ -55,10 +56,11 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
       experienceMax: Number(form.experienceMax),
       salaryMin: form.salaryMin === '' ? undefined : Number(form.salaryMin),
       salaryMax: form.salaryMax === '' ? undefined : Number(form.salaryMax),
-      location: form.location.trim(),
+      location: form.location,
       employmentType: form.employmentType,
-      mandatorySkills: parseSkills(form.mandatorySkills),
-      preferredSkills: parseSkills(form.preferredSkills),
+      // mandatorySkills: parseSkills(form.mandatorySkills),
+      mandatorySkills: form.mandatorySkills,
+      preferredSkills: form.preferredSkills,
     });
   };
 
@@ -98,10 +100,26 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
           <Input id="salaryMax" type="number" min={0} value={form.salaryMax} onChange={set('salaryMax')} />
         </div>
       </div>
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="location">Location</Label>
         <Input id="location" value={form.location} onChange={set('location')} required />
-      </div>
+      </div> */}
+
+        <div className="space-y-2">
+  <Label htmlFor="location">Location</Label>
+
+  <TagInput
+    value={form.location}
+    onChange={(tags) =>
+      setForm((prev) => ({
+        ...prev,
+        location: tags,
+      }))
+    }
+    placeholder="Type a location and press Enter"
+  />
+</div>
+
       <div className="space-y-2">
         <Label htmlFor="employmentType">Employment type</Label>
         <Select id="employmentType" value={form.employmentType} onChange={set('employmentType')}>
@@ -110,14 +128,42 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
           ))}
         </Select>
       </div>
-      <div className="space-y-2">
+
+      {/* <div className="space-y-2">
         <Label htmlFor="mandatorySkills">Mandatory skills (comma-separated)</Label>
         <Input id="mandatorySkills" value={form.mandatorySkills} onChange={set('mandatorySkills')} required placeholder="React, Node.js, SQL" />
-      </div>
+      </div> */}
+
       <div className="space-y-2">
-        <Label htmlFor="preferredSkills">Preferred skills (comma-separated)</Label>
-        <Input id="preferredSkills" value={form.preferredSkills} onChange={set('preferredSkills')} placeholder="TypeScript, AWS" />
-      </div>
+  <Label htmlFor="mandatorySkills">Mandatory Skills</Label>
+
+  <TagInput
+    value={form.mandatorySkills}
+    onChange={(tags) =>
+      setForm((prev) => ({
+        ...prev,
+        mandatorySkills: tags,
+      }))
+    }
+    placeholder="Type a skill and press Enter"
+  />
+</div>
+      
+      <div className="space-y-2">
+  <Label htmlFor="preferredSkills">Preferred Skills</Label>
+
+  <TagInput
+    value={form.preferredSkills}
+    onChange={(tags) =>
+      setForm((prev) => ({
+        ...prev,
+        preferredSkills: tags,
+      }))
+    }
+    placeholder="Type a skill and press Enter"
+  />
+</div>
+
       <div className="flex gap-3 pt-2">
         <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save job'}</Button>
         {onCancel && (
