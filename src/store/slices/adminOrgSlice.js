@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
   getMyOrganizationRequest,
   updateOrgSettingsRequest,
+  uploadOrgLogoRequest,
   updateEmailTemplateRequest,
   updateWhatsAppTemplateRequest,
   getBillingRequest,
@@ -28,6 +29,18 @@ export const updateOrgSettings = createAsyncThunk(
       return data.data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Failed to update settings');
+    }
+  }
+);
+
+export const uploadOrgLogo = createAsyncThunk(
+  'adminOrg/uploadLogo',
+  async (file, { rejectWithValue }) => {
+    try {
+      const { data } = await uploadOrgLogoRequest(file);
+      return data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to upload logo');
     }
   }
 );
@@ -89,6 +102,7 @@ const adminOrgSlice = createSlice({
     auditPagination: null,
     loading: false,
     saving: false,
+    logoUploading: false,
     billingLoading: false,
     auditLoading: false,
     error: null,
@@ -112,6 +126,15 @@ const adminOrgSlice = createSlice({
       })
       .addCase(updateOrgSettings.rejected, (s, a) => {
         s.saving = false;
+        s.error = a.payload;
+      })
+      .addCase(uploadOrgLogo.pending, (s) => { s.logoUploading = true; })
+      .addCase(uploadOrgLogo.fulfilled, (s, a) => {
+        s.logoUploading = false;
+        s.organization = a.payload;
+      })
+      .addCase(uploadOrgLogo.rejected, (s, a) => {
+        s.logoUploading = false;
         s.error = a.payload;
       })
       .addCase(updateEmailTemplate.fulfilled, (s, a) => {
