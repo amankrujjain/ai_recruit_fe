@@ -7,7 +7,12 @@ const styles = {
   muted: 'bg-slate-100 text-slate-600',
 };
 
-export function Badge({ children, variant = 'default', className }) {
+export function Badge({
+  children,
+  variant = 'default',
+  className,
+  ...props
+}) {
   return (
     <span
       className={cn(
@@ -15,6 +20,7 @@ export function Badge({ children, variant = 'default', className }) {
         styles[variant],
         className
       )}
+      {...props}
     >
       {children}
     </span>

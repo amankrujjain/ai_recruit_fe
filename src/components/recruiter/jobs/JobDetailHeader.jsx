@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { employmentTypeLabels } from '@/lib/employmentType';
 
-export function JobDetailHeader({ job, onDeactivate, deactivating }) {
+export function JobDetailHeader({ job, onDeactivate,  onActivate, deactivating }) {
   if (!job) return null;
 
   return (
@@ -23,7 +23,7 @@ export function JobDetailHeader({ job, onDeactivate, deactivating }) {
         <Button variant="outline" size="sm" asChild>
           <Link to={`/recruiter/jobs/${job.jobId}/edit`}>Edit</Link>
         </Button>
-        {job.isActive && (
+        {/* {job.isActive && (
           <Button
             variant="ghost"
             size="sm"
@@ -32,7 +32,28 @@ export function JobDetailHeader({ job, onDeactivate, deactivating }) {
           >
             {deactivating ? 'Deactivating…' : 'Deactivate'}
           </Button>
-        )}
+        )} */}
+
+          {job.isActive ? (
+  <Button
+    variant="ghost"
+    size="sm"
+    disabled={deactivating}
+    onClick={onDeactivate}
+  >
+    {deactivating ? 'Deactivating…' : 'Deactivate'}
+  </Button>
+) : (
+  <Button
+    variant="ghost"
+    size="sm"
+    disabled={deactivating}
+    onClick={onActivate}
+  >
+    {deactivating ? 'Activating…' : 'Activate'}
+  </Button>
+)}
+
       </div>
     </div>
   );
