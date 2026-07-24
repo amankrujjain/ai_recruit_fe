@@ -17,13 +17,13 @@ export const selectCandidatesRequest = (jobId, payload) =>
 export const deleteCandidateRequest = (jobId, candidateJobId) =>
   apiClient.delete(`/jobs/${jobId}/candidates/${candidateJobId}`);
 
-export const uploadExcelRequest = (jobId, file) => {
-  const form = new FormData();
-  form.append('file', file);
-  return apiClient.post(`/jobs/${jobId}/candidates/upload/excel`, form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-};
+// export const uploadExcelRequest = (jobId, file) => {
+//   const form = new FormData();
+//   form.append('file', file);
+//   return apiClient.post(`/jobs/${jobId}/candidates/upload/excel`, form, {
+//     headers: { 'Content-Type': 'multipart/form-data' },
+//   });
+// };
 
 export const uploadResumeRequest = (jobId, file) => {
   const form = new FormData();

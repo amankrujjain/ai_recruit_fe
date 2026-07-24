@@ -25,7 +25,7 @@ export function CandidateTable({
   if (!items.length) {
     return (
       <p className="py-8 text-center text-sm text-muted">
-        No candidates yet. Upload an Excel file or resumes to get started.
+        No candidates yet. Upload resumes to get started.
       </p>
     );
   }
