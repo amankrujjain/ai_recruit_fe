@@ -57,6 +57,7 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
       salaryMin: form.salaryMin === '' ? undefined : Number(form.salaryMin),
       salaryMax: form.salaryMax === '' ? undefined : Number(form.salaryMax),
       location: form.location,
+      // location: form.location[0] || '',
       employmentType: form.employmentType,
       // mandatorySkills: parseSkills(form.mandatorySkills),
       mandatorySkills: form.mandatorySkills,
