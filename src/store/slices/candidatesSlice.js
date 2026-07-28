@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
   listCandidatesRequest,
-  uploadExcelRequest,
   uploadResumeRequest,
   selectCandidatesRequest,
   deleteCandidateRequest,
@@ -19,17 +18,17 @@ export const fetchCandidates = createAsyncThunk(
   }
 );
 
-export const uploadExcel = createAsyncThunk(
-  'candidates/uploadExcel',
-  async ({ jobId, file }, { rejectWithValue }) => {
-    try {
-      const { data } = await uploadExcelRequest(jobId, file);
-      return data.data;
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Excel upload failed');
-    }
-  }
-);
+// export const uploadExcel = createAsyncThunk(
+//   'candidates/uploadExcel',
+//   async ({ jobId, file }, { rejectWithValue }) => {
+//     try {
+//       const { data } = await uploadExcelRequest(jobId, file);
+//       return data.data;
+//     } catch (err) {
+//       return rejectWithValue(err.response?.data?.message || 'Excel upload failed');
+//     }
+//   }
+// );
 
 export const uploadResume = createAsyncThunk(
   'candidates/uploadResume',
@@ -93,9 +92,9 @@ const candidatesSlice = createSlice({
         s.pagination = a.payload.pagination;
       })
       .addCase(fetchCandidates.rejected, (s, a) => { s.loading = false; s.error = a.payload; })
-      .addCase(uploadExcel.pending, (s) => { s.uploading = true; })
-      .addCase(uploadExcel.fulfilled, (s) => { s.uploading = false; })
-      .addCase(uploadExcel.rejected, (s, a) => { s.uploading = false; s.error = a.payload; })
+      // .addCase(uploadExcel.pending, (s) => { s.uploading = true; })
+      // .addCase(uploadExcel.fulfilled, (s) => { s.uploading = false; })
+      // .addCase(uploadExcel.rejected, (s, a) => { s.uploading = false; s.error = a.payload; })
       .addCase(uploadResume.pending, (s) => { s.uploading = true; s.error = null; })
       .addCase(uploadResume.fulfilled, (s) => { s.uploading = false; })
       .addCase(uploadResume.rejected, (s, a) => { s.uploading = false; s.error = a.payload; })

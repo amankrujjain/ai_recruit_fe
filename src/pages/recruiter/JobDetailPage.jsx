@@ -18,12 +18,12 @@ import { getResumeStatusRequest } from '@/api/jobApi';
 import {
   fetchJob,
   deactivateJob,
+  activateJob,
   selectJobs,
   clearCurrentJob,
 } from '@/store/slices/jobsSlice';
 import {
   fetchCandidates,
-  uploadExcel,
   uploadResume,
   selectCandidates,
   deleteCandidate,
@@ -239,15 +239,27 @@ export function JobDetailPage() {
     }
   };
 
-  const handleExcel = async (file) => {
-    const result = await dispatch(uploadExcel({ jobId, file }));
-    if (uploadExcel.fulfilled.match(result)) {
-      toast.success(`Excel uploaded — ${result.payload.uploaded || 0} candidate(s)`);
-      await loadCandidates();
-      // Matching is async for excel rows — one delayed refresh for scores
-      setTimeout(() => loadCandidates(), MATCH_FOLLOWUP_MS);
-    } else toast.error(result.payload || 'Upload failed');
-  };
+  const handleActivate = async () => {
+  if (!window.confirm('Activate this job? It will start accepting new candidates again.')) return;
+
+  const result = await dispatch(activateJob(jobId));
+
+  if (activateJob.fulfilled.match(result)) {
+    toast.success('Job activated');
+  } else {
+    toast.error(result.payload || 'Failed to activate');
+  }
+};
+
+  // const handleExcel = async (file) => {
+  //   const result = await dispatch(uploadExcel({ jobId, file }));
+  //   if (uploadExcel.fulfilled.match(result)) {
+  //     toast.success(`Excel uploaded — ${result.payload.uploaded || 0} candidate(s)`);
+  //     await loadCandidates();
+  //     // Matching is async for excel rows — one delayed refresh for scores
+  //     setTimeout(() => loadCandidates(), MATCH_FOLLOWUP_MS);
+  //   } else toast.error(result.payload || 'Upload failed');
+  // };
 
   const handleResume = async (file) => {
     const result = await dispatch(uploadResume({ jobId, file }));
@@ -319,7 +331,12 @@ export function JobDetailPage() {
   return (
     <DashboardShell title={job.jobTitle}>
       <div className="mx-auto max-w-6xl space-y-6">
-        <JobDetailHeader job={job} onDeactivate={handleDeactivate} deactivating={saving} />
+        <JobDetailHeader
+  job={job}
+  onDeactivate={handleDeactivate}
+  onActivate={handleActivate}
+  deactivating={saving}
+/>
 
         <div className="flex gap-2 border-b border-border">
           {TABS.map(({ id, label }) => (
@@ -356,10 +373,18 @@ export function JobDetailPage() {
 
         {tab === 'candidates' && (
           <div className="space-y-6">
-            <div className="grid gap-4 lg:grid-cols-2">
+            {/* <div className="grid gap-4 lg:grid-cols-2">
               <FileUploadZone type="excel" onUpload={handleExcel} uploading={busy} />
               <FileUploadZone type="resume" onUpload={handleResume} uploading={busy} />
-            </div>
+            </div> */}
+
+            <div className="grid gap-4">
+  <FileUploadZone
+    type="resume"
+    onUpload={handleResume}
+    uploading={busy}
+  />
+</div>
 
             <ResumeProcessingBanner progress={parseProgress} />
 
