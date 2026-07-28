@@ -23,3 +23,6 @@ export const updateOrganizationRequest = (organizationId, payload) =>
 
 export const deleteOrganizationRequest = (organizationId) =>
   apiClient.delete(`/organizations/${organizationId}`);
+
+export const sendAdminPasswordResetRequest = (organizationId) =>
+  apiClient.post(`/organizations/${organizationId}/admin/reset-password`);

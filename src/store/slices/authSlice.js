@@ -6,16 +6,27 @@ import {
 } from '@/api/authApi';
 import { storageKeys } from '@/lib/constants';
 
+const clearStorage = () => {
+  localStorage.removeItem(storageKeys.accessToken);
+  localStorage.removeItem(storageKeys.refreshToken);
+  localStorage.removeItem(storageKeys.account);
+  localStorage.removeItem(storageKeys.user);
+};
+
 const loadSavedAccount = () => {
   const raw = localStorage.getItem(storageKeys.account)
     || localStorage.getItem(storageKeys.user);
   if (!raw) return null;
 
-  const parsed = JSON.parse(raw);
-  if (parsed.userId && !parsed.accountId) {
-    parsed.accountId = parsed.userId;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed.userId && !parsed.accountId) {
+      parsed.accountId = parsed.userId;
+    }
+    return parsed;
+  } catch {
+    return null;
   }
-  return parsed;
 };
 
 export const loginUser = createAsyncThunk(
@@ -44,10 +55,7 @@ export const fetchProfile = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk('auth/logout', async () => {
   try { await logoutRequest(); } catch { /* ignore */ }
-  localStorage.removeItem(storageKeys.accessToken);
-  localStorage.removeItem(storageKeys.refreshToken);
-  localStorage.removeItem(storageKeys.account);
-  localStorage.removeItem(storageKeys.user);
+  clearStorage();
 });
 
 const initialState = {
@@ -64,6 +72,20 @@ const authSlice = createSlice({
   reducers: {
     clearAuthError: (state) => { state.error = null; },
     setInitialized: (state) => { state.initialized = true; },
+    setTokens: (state, action) => {
+      const { accessToken, refreshToken } = action.payload;
+      state.token = accessToken;
+      localStorage.setItem(storageKeys.accessToken, accessToken);
+      if (refreshToken) {
+        localStorage.setItem(storageKeys.refreshToken, refreshToken);
+      }
+    },
+    clearSession: (state) => {
+      state.account = null;
+      state.token = null;
+      state.error = null;
+      clearStorage();
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -89,6 +111,7 @@ const authSlice = createSlice({
       .addCase(fetchProfile.rejected, (s) => {
         s.account = null;
         s.token = null;
+        clearStorage();
       })
       .addCase(logoutUser.fulfilled, (s) => {
         s.account = null;
@@ -97,7 +120,12 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearAuthError, setInitialized } = authSlice.actions;
+export const {
+  clearAuthError,
+  setInitialized,
+  setTokens,
+  clearSession,
+} = authSlice.actions;
 export const selectAuth = (state) => state.auth;
 export const selectIsAuthenticated = (state) => Boolean(state.auth.token);
 export default authSlice.reducer;
