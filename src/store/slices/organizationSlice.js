@@ -5,6 +5,7 @@ import {
   getOrganizationRequest,
   updateOrganizationRequest,
   deleteOrganizationRequest,
+  sendAdminPasswordResetRequest,
 } from '@/api/organizationApi';
 
 export const fetchOrganizations = createAsyncThunk(
@@ -67,6 +68,18 @@ export const deleteOrganization = createAsyncThunk(
   }
 );
 
+export const sendAdminPasswordReset = createAsyncThunk(
+  'organizations/sendAdminPasswordReset',
+  async (organizationId, { rejectWithValue }) => {
+    try {
+      const { data } = await sendAdminPasswordResetRequest(organizationId);
+      return data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to send reset email');
+    }
+  }
+);
+
 const organizationSlice = createSlice({
   name: 'organizations',
   initialState: {
@@ -77,6 +90,7 @@ const organizationSlice = createSlice({
     saving: false,
     deleting: false,
     creating: false,
+    resettingAdminPassword: false,
     error: null,
   },
   reducers: {
@@ -121,6 +135,12 @@ const organizationSlice = createSlice({
       })
       .addCase(deleteOrganization.rejected, (s, a) => {
         s.deleting = false;
+        s.error = a.payload;
+      })
+      .addCase(sendAdminPasswordReset.pending, (s) => { s.resettingAdminPassword = true; })
+      .addCase(sendAdminPasswordReset.fulfilled, (s) => { s.resettingAdminPassword = false; })
+      .addCase(sendAdminPasswordReset.rejected, (s, a) => {
+        s.resettingAdminPassword = false;
         s.error = a.payload;
       });
   },
