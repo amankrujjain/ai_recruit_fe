@@ -8,15 +8,16 @@ import { Label } from '@/components/ui/Label';
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [sentTo, setSentTo] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const { data } = await forgotPasswordRequest(email);
-      setSent(true);
-      toast.success(data.message || 'If the email exists, a reset link has been sent');
+      const sentEmail = data?.data?.email || email;
+      setSentTo(sentEmail);
+      toast.success(data?.message || data?.data?.message || 'Password reset link sent');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send reset link');
     } finally {
@@ -24,13 +25,13 @@ export function ForgotPasswordForm() {
     }
   };
 
-  if (sent) {
+  if (sentTo) {
     return (
       <div className="rounded-lg border border-brand-100 bg-brand-50/50 p-4 text-sm text-foreground">
         <p className="font-medium">Check your inbox</p>
         <p className="mt-1 text-muted">
-          If an account exists for <span className="font-medium text-foreground">{email}</span>, we sent
-          password reset instructions.
+          We verified your account and sent a password reset link to{' '}
+          <span className="font-medium text-foreground">{sentTo}</span>.
         </p>
       </div>
     );
@@ -48,9 +49,12 @@ export function ForgotPasswordForm() {
           placeholder="you@company.com"
           required
         />
+        <p className="text-xs text-muted">
+          We verify the email belongs to an active account before sending the link.
+        </p>
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? 'Sending...' : 'Send reset link'}
+        {loading ? 'Verifying…' : 'Send reset link'}
       </Button>
     </form>
   );

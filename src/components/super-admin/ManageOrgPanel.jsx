@@ -12,13 +12,14 @@ import {
   deleteOrganization,
   fetchOrganizationById,
   selectOrganizations,
+  sendAdminPasswordReset,
   updateOrganization,
 } from '@/store/slices/organizationSlice';
 
 export function ManageOrgPanel({ organizationId, onDeleted }) {
   const dispatch = useDispatch();
   const { items: countries } = useSelector(selectCountries);
-  const { selected, loading, saving, deleting } = useSelector(selectOrganizations);
+  const { selected, loading, saving, deleting, resettingAdminPassword } = useSelector(selectOrganizations);
   const [form, setForm] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -77,6 +78,19 @@ export function ManageOrgPanel({ organizationId, onDeleted }) {
     }
   };
 
+  const handleSendAdminReset = async () => {
+    const result = await dispatch(sendAdminPasswordReset(organizationId));
+    if (sendAdminPasswordReset.fulfilled.match(result)) {
+      toast.success(
+        result.payload?.email
+          ? `Reset link sent to ${result.payload.email}`
+          : 'Password reset email sent to admin'
+      );
+    } else {
+      toast.error(result.payload || 'Failed to send reset email');
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -119,10 +133,21 @@ export function ManageOrgPanel({ organizationId, onDeleted }) {
           </div>
           <div className="flex flex-wrap gap-3 pt-2">
             <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={resettingAdminPassword}
+              onClick={handleSendAdminReset}
+            >
+              {resettingAdminPassword ? 'Sending…' : 'Send admin reset link'}
+            </Button>
             <Button type="button" variant="outline" disabled={deleting} onClick={() => setConfirmOpen(true)}>
               Delete
             </Button>
           </div>
+          <p className="text-xs text-muted">
+            Send admin reset link emails a magic link to the organization admin. It does not set or reveal their password.
+          </p>
         </form>
       </CardContent>
 

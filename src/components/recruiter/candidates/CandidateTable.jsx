@@ -1,13 +1,21 @@
-import { Trash2 } from 'lucide-react';
+import { FileSearch, Trash2 } from 'lucide-react';
 import { CandidateStatusBadge } from '@/components/recruiter/candidates/CandidateStatusBadge';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { CandidateStatus } from '@/lib/candidateStatus';
 import { outreachPipelineLabels } from '@/lib/outreachPipelineStatus';
 
 function formatScore(value) {
   if (value == null) return '—';
   return `${Number(value).toFixed(0)}%`;
 }
+
+const INTERVIEW_VIEW_STATUSES = new Set([
+  CandidateStatus.CALL_COMPLETED,
+  CandidateStatus.SHORTLISTED,
+  CandidateStatus.HUMAN_INTERVIEW,
+  CandidateStatus.HIRED,
+]);
 
 export function CandidateTable({
   items,
@@ -17,6 +25,7 @@ export function CandidateTable({
   onToggle,
   onToggleAll,
   onDelete,
+  onViewInterview,
 }) {
   if (loading) {
     return <p className="py-8 text-center text-sm text-muted">Loading candidates…</p>;
@@ -34,7 +43,7 @@ export function CandidateTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-left text-sm">
+      <table className="w-full min-w-[800px] text-left text-sm">
         <thead>
           <tr className="border-b border-border text-muted">
             <th className="px-3 py-2">
@@ -59,6 +68,7 @@ export function CandidateTable({
             const id = row.candidateJobId;
             const candidate = row.candidate || {};
             const deleting = deletingId === id;
+            const canViewInterview = INTERVIEW_VIEW_STATUSES.has(row.status);
             return (
               <tr key={id} className="border-b border-border/60 hover:bg-brand-50/40">
                 <td className="px-3 py-3">
@@ -89,18 +99,32 @@ export function CandidateTable({
                   {row.manuallySelected ? 'Yes' : '—'}
                 </td>
                 <td className="px-3 py-3">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                    disabled={deleting}
-                    aria-label={`Remove ${candidate.name || 'candidate'}`}
-                    onClick={() => onDelete?.(row)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="ml-1">{deleting ? 'Removing…' : 'Delete'}</span>
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {canViewInterview && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`View interview for ${candidate.name || 'candidate'}`}
+                        onClick={() => onViewInterview?.(row)}
+                      >
+                        <FileSearch className="h-4 w-4" />
+                        <span className="ml-1">Interview</span>
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      disabled={deleting}
+                      aria-label={`Remove ${candidate.name || 'candidate'}`}
+                      onClick={() => onDelete?.(row)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="ml-1">{deleting ? 'Removing…' : 'Delete'}</span>
+                    </Button>
+                  </div>
                 </td>
               </tr>
             );

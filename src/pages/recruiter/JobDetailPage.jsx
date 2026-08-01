@@ -11,6 +11,7 @@ import { FileUploadZone } from '@/components/recruiter/candidates/FileUploadZone
 import { CandidateTable } from '@/components/recruiter/candidates/CandidateTable';
 import { SelectCandidatesBar } from '@/components/recruiter/candidates/SelectCandidatesBar';
 import { ResumeProcessingBanner } from '@/components/recruiter/candidates/ResumeProcessingBanner';
+import { InterviewScorecardDrawer } from '@/components/recruiter/candidates/InterviewScorecardDrawer';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { RankingMode } from '@/lib/rankingMode';
@@ -51,6 +52,7 @@ export function JobDetailPage() {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [parseProgress, setParseProgress] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [interviewDrawer, setInterviewDrawer] = useState(null);
   const stopPollRef = useRef(null);
   const pageRef = useRef(page);
   pageRef.current = page;
@@ -208,6 +210,13 @@ export function JobDetailPage() {
       description: `Are you sure you want to remove ${name} from this job? This action is not reversible.`,
       confirmLabel: 'Remove',
       variant: 'danger',
+    });
+  };
+
+  const handleViewInterview = (row) => {
+    setInterviewDrawer({
+      candidateJobId: row.candidateJobId,
+      candidateName: row.candidate?.name || 'Candidate',
     });
   };
 
@@ -434,6 +443,7 @@ const handleActivate = () => {
                   onToggle={toggleSelect}
                   onToggleAll={toggleAll}
                   onDelete={handleDeleteCandidate}
+                  onViewInterview={handleViewInterview}
                 />
                 <PaginationBar pagination={pagination} onPageChange={setPage} />
               </CardContent>
@@ -452,6 +462,13 @@ const handleActivate = () => {
         loading={Boolean(deletingId) || saving}
         onOpenChange={(open) => { if (!open) closeConfirm(); }}
         onConfirm={handleConfirm}
+      />
+
+      <InterviewScorecardDrawer
+        open={Boolean(interviewDrawer)}
+        candidateJobId={interviewDrawer?.candidateJobId}
+        candidateName={interviewDrawer?.candidateName}
+        onOpenChange={(open) => { if (!open) setInterviewDrawer(null); }}
       />
     </DashboardShell>
   );
