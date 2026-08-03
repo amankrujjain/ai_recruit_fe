@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { DashboardShell } from '@/components/layout/DashboardShell';
+import { usePageTitle } from '@/context/PageTitleContext';
 import { CreateOrgForm } from '@/components/super-admin/CreateOrgForm';
 import { VerificationSuccessBanner } from '@/components/super-admin/VerificationSuccessBanner';
 import { RegistrationTable } from '@/components/super-admin/RegistrationTable';
 import { ListToolbar } from '@/components/super-admin/ListToolbar';
 import { PaginationBar } from '@/components/super-admin/PaginationBar';
+import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { fetchCountries } from '@/store/slices/countrySlice';
 import { fetchRegistrations, selectRegistrations } from '@/store/slices/registrationSlice';
@@ -17,6 +18,7 @@ const SORT_OPTIONS = [
 ];
 
 export function PreRegisteredPage() {
+  usePageTitle('Pre-registered organizations');
   const dispatch = useDispatch();
   const { items, pagination, loading } = useSelector(selectRegistrations);
   const [search, setSearch] = useState('');
@@ -36,24 +38,26 @@ export function PreRegisteredPage() {
   useEffect(() => { setPage(1); }, [debouncedSearch, sortBy, sortOrder]);
   useEffect(() => { load(); }, [dispatch, page, debouncedSearch, sortBy, sortOrder]);
 
+  if (loading && items.length === 0) {
+    return <PageContentSkeleton />;
+  }
+
   return (
-    <DashboardShell title="Pre-registered organizations">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <VerificationSuccessBanner />
-        <CreateOrgForm onCreated={load} />
-        <ListToolbar
-          search={search}
-          onSearchChange={setSearch}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          sortOrder={sortOrder}
-          onSortOrderChange={setSortOrder}
-          sortOptions={SORT_OPTIONS}
-          placeholder="Search pending organizations..."
-        />
-        <RegistrationTable items={items} loading={loading} />
-        <PaginationBar pagination={pagination} onPageChange={setPage} />
-      </div>
-    </DashboardShell>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <VerificationSuccessBanner />
+      <CreateOrgForm onCreated={load} />
+      <ListToolbar
+        search={search}
+        onSearchChange={setSearch}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
+        sortOptions={SORT_OPTIONS}
+        placeholder="Search pending organizations..."
+      />
+      <RegistrationTable items={items} loading={loading} />
+      <PaginationBar pagination={pagination} onPageChange={setPage} />
+    </div>
   );
 }

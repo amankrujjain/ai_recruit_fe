@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { DashboardShell } from '@/components/layout/DashboardShell';
+import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
+import { usePageTitle } from '@/context/PageTitleContext';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PaginationBar } from '@/components/super-admin/PaginationBar';
@@ -47,6 +48,7 @@ export function JobDetailPage() {
   const tab = searchParams.get('tab') || 'overview';
   const dispatch = useDispatch();
   const { current: job, detailLoading, saving } = useSelector(selectJobs);
+  usePageTitle(job?.jobTitle || 'Job');
   const { items, pagination, loading, uploading, selecting, deletingId } = useSelector(selectCandidatesState);
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
@@ -342,27 +344,22 @@ const handleActivate = () => {
   const busy = uploading || Boolean(parseProgress?.active);
 
   if (detailLoading && !job) {
-    return (
-      <DashboardShell title="Job">
-        <p className="text-sm text-muted">Loading job…</p>
-      </DashboardShell>
-    );
+    return <PageContentSkeleton />;
   }
 
   if (!job) {
     return (
-      <DashboardShell title="Job">
+      <div>
         <p className="text-sm text-muted">Job not found.</p>
         <Button asChild className="mt-4">
           <Link to="/recruiter/jobs">Back to jobs</Link>
         </Button>
-      </DashboardShell>
+      </div>
     );
   }
 
   return (
-    <DashboardShell title={job.jobTitle}>
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
         <JobDetailHeader
   job={job}
   onDeactivate={handleDeactivate}
@@ -470,6 +467,6 @@ const handleActivate = () => {
         candidateName={interviewDrawer?.candidateName}
         onOpenChange={(open) => { if (!open) setInterviewDrawer(null); }}
       />
-    </DashboardShell>
+    </div>
   );
 }

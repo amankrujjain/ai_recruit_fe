@@ -1,25 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { DashboardShell } from '@/components/layout/DashboardShell';
+import { usePageTitle } from '@/context/PageTitleContext';
 import { AuditLogTable } from '@/components/admin/audit/AuditLogTable';
 import { PaginationBar } from '@/components/super-admin/PaginationBar';
+import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
+import { usePageBootstrap } from '@/hooks/usePageBootstrap';
 import { fetchAuditLogs, selectAdminOrg } from '@/store/slices/adminOrgSlice';
 
 export function AdminAuditLogsPage() {
+  usePageTitle('Audit logs');
   const dispatch = useDispatch();
   const { auditLogs, auditPagination, auditLoading } = useSelector(selectAdminOrg);
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    dispatch(fetchAuditLogs({ page, limit: 20 }));
-  }, [dispatch, page]);
+  const booting = usePageBootstrap(
+    () => dispatch(fetchAuditLogs({ page, limit: 20 })),
+    [dispatch, page]
+  );
+
+  if (booting) {
+    return <PageContentSkeleton />;
+  }
 
   return (
-    <DashboardShell title="Audit logs">
-      <div className="mx-auto max-w-6xl space-y-4">
-        <AuditLogTable items={auditLogs} loading={auditLoading} />
-        <PaginationBar pagination={auditPagination} onPageChange={setPage} />
-      </div>
-    </DashboardShell>
+    <div className="mx-auto max-w-6xl space-y-4">
+      <AuditLogTable items={auditLogs} loading={auditLoading} />
+      <PaginationBar pagination={auditPagination} onPageChange={setPage} />
+    </div>
   );
 }

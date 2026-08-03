@@ -8,6 +8,9 @@
   --color-brand-600: #4f46e5;
   --color-brand-700: #4338ca;
   --color-accent-500: #14b8a6;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-warning-500: #f59e0b;
   --color-surface: #f8fafc;
   --color-card: #ffffff;
   --color-muted: #64748b;
@@ -26,4 +29,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-#root { min-height: 100vh; }
+html,
+body,
+#root {
+  height: 100%;
+}
+
+#root {
+  min-height: 100%;
+}

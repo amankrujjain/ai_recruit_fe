@@ -1,12 +1,12 @@
-import { DashboardShell } from '@/components/layout/DashboardShell';
+import { usePageTitle } from '@/context/PageTitleContext';
 import { AdminOverview } from '@/components/admin/dashboard/AdminOverview';
 
 export function AdminDashboardPage() {
+  usePageTitle('Dashboard');
+
   return (
-    <DashboardShell title="Admin Dashboard">
-      <div className="mx-auto max-w-6xl">
-        <AdminOverview />
-      </div>
-    </DashboardShell>
+    <div className="mx-auto max-w-7xl">
+      <AdminOverview />
+    </div>
   );
 }
