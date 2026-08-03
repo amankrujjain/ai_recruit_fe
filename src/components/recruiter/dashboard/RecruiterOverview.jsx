@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
+import { usePageBootstrap } from '@/hooks/usePageBootstrap';
 import { selectAuth } from '@/store/slices/authSlice';
 import { fetchDashboardStats, selectRecruitment } from '@/store/slices/recruitmentSlice';
 
@@ -20,11 +21,16 @@ const statCards = [
 export function RecruiterOverview() {
   const dispatch = useDispatch();
   const { account } = useSelector(selectAuth);
-  const { stats, loading } = useSelector(selectRecruitment);
+  const { stats } = useSelector(selectRecruitment);
 
-  useEffect(() => {
-    dispatch(fetchDashboardStats());
-  }, [dispatch]);
+  const booting = usePageBootstrap(
+    () => dispatch(fetchDashboardStats()),
+    [dispatch]
+  );
+
+  if (booting) {
+    return <PageContentSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
@@ -43,22 +49,18 @@ export function RecruiterOverview() {
         </CardContent>
       </Card>
 
-      {loading && !stats ? (
-        <p className="text-sm text-muted">Loading stats…</p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {statCards.map(({ key, label, suffix }) => (
-            <Card key={key}>
-              <CardContent className="pt-6">
-                <p className="text-2xl font-bold">
-                  {stats?.[key] ?? 0}{suffix || ''}
-                </p>
-                <p className="text-sm text-muted">{label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map(({ key, label, suffix }) => (
+          <Card key={key}>
+            <CardContent className="pt-6">
+              <p className="text-2xl font-bold">
+                {stats?.[key] ?? 0}{suffix || ''}
+              </p>
+              <p className="text-sm text-muted">{label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

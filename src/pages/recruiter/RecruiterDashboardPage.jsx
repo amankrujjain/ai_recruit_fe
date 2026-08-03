@@ -1,12 +1,12 @@
-import { DashboardShell } from '@/components/layout/DashboardShell';
+import { usePageTitle } from '@/context/PageTitleContext';
 import { RecruiterOverview } from '@/components/recruiter/dashboard/RecruiterOverview';
 
 export function RecruiterDashboardPage() {
+  usePageTitle('Recruiter Dashboard');
+
   return (
-    <DashboardShell title="Recruiter Dashboard">
-      <div className="mx-auto max-w-6xl">
-        <RecruiterOverview />
-      </div>
-    </DashboardShell>
+    <div className="mx-auto max-w-6xl">
+      <RecruiterOverview />
+    </div>
   );
 }

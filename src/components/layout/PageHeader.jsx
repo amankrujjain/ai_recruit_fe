@@ -5,7 +5,7 @@ export function PageHeader({ title, subtitle, actionLabel, actionTo, onAction })
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <h2 className="text-2xl font-bold text-foreground">{title}</h2>
         {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
       </div>
       {actionLabel && actionTo && (

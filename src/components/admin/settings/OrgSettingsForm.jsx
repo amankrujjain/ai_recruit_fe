@@ -18,9 +18,13 @@ export function OrgSettingsForm() {
   const dispatch = useDispatch();
   const { organization, saving, logoUploading } = useSelector(selectAdminOrg);
   const [form, setForm] = useState(null);
+  const [logoBroken, setLogoBroken] = useState(false);
   const logoInputRef = useRef(null);
 
-  useEffect(() => { dispatch(fetchMyOrganization()); }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchMyOrganization());
+  }, [dispatch]);
+
   useEffect(() => {
     if (organization) {
       setForm({
@@ -34,6 +38,10 @@ export function OrgSettingsForm() {
       });
     }
   }, [organization]);
+
+  useEffect(() => {
+    setLogoBroken(false);
+  }, [organization?.logoUrl]);
 
   if (!form) return <p className="text-sm text-muted">Loading settings...</p>;
 
@@ -61,8 +69,10 @@ export function OrgSettingsForm() {
     else toast.error(result.payload || 'Logo upload failed');
   };
 
+  // Logo path comes from Redux adminOrg.organization.logoUrl
   const logoSrc = resolveAssetUrl(organization?.logoUrl);
   const countryName = organization?.country?.name || '—';
+  const showLogo = Boolean(logoSrc) && !logoBroken;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -86,11 +96,13 @@ export function OrgSettingsForm() {
             <Label>Logo</Label>
             <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-slate-50/80 px-4 py-3">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                {logoSrc ? (
+                {showLogo ? (
                   <img
+                    key={logoSrc}
                     src={logoSrc}
                     alt="Organization logo"
                     className="h-full w-full object-contain p-1.5"
+                    onError={() => setLogoBroken(true)}
                   />
                 ) : (
                   <ImagePlus className="h-7 w-7 text-slate-300" aria-hidden />
@@ -112,7 +124,7 @@ export function OrgSettingsForm() {
                   disabled={logoUploading}
                   onClick={() => logoInputRef.current?.click()}
                 >
-                  {logoUploading ? 'Uploading…' : logoSrc ? 'Change logo' : 'Upload logo'}
+                  {logoUploading ? 'Uploading…' : showLogo ? 'Change logo' : 'Upload logo'}
                 </Button>
                 <p className="text-xs text-muted">PNG, JPG, WebP, or GIF</p>
               </div>
