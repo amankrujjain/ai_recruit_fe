@@ -2,10 +2,11 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { DashboardShell } from '@/components/layout/DashboardShell';
+import { usePageTitle } from '@/context/PageTitleContext';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/Card';
 import { JobForm } from '@/components/recruiter/jobs/JobForm';
+import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
 import {
   createJob,
   fetchJob,
@@ -17,6 +18,7 @@ import {
 export function JobFormPage() {
   const { jobId } = useParams();
   const isEdit = Boolean(jobId);
+  usePageTitle(isEdit ? 'Edit job' : 'Create job');
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { current, detailLoading, saving } = useSelector(selectJobs);
@@ -40,31 +42,25 @@ export function JobFormPage() {
   };
 
   if (isEdit && detailLoading && !current) {
-    return (
-      <DashboardShell title="Edit job">
-        <p className="text-sm text-muted">Loading job…</p>
-      </DashboardShell>
-    );
+    return <PageContentSkeleton />;
   }
 
   return (
-    <DashboardShell title={isEdit ? 'Edit job' : 'Create job'}>
-      <div className="mx-auto max-w-2xl space-y-6">
-        <PageHeader
-          title={isEdit ? 'Edit job posting' : 'New job posting'}
-          subtitle={isEdit ? 'Update role details and requirements.' : 'Define the role you are hiring for.'}
-        />
-        <Card>
-          <CardContent className="pt-6">
-            <JobForm
-              initial={isEdit ? current : null}
-              saving={saving}
-              onSubmit={handleSubmit}
-              onCancel={() => navigate(isEdit ? `/recruiter/jobs/${jobId}` : '/recruiter/jobs')}
-            />
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardShell>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <PageHeader
+        title={isEdit ? 'Edit job posting' : 'New job posting'}
+        subtitle={isEdit ? 'Update role details and requirements.' : 'Define the role you are hiring for.'}
+      />
+      <Card>
+        <CardContent className="pt-6">
+          <JobForm
+            initial={isEdit ? current : null}
+            saving={saving}
+            onSubmit={handleSubmit}
+            onCancel={() => navigate(isEdit ? `/recruiter/jobs/${jobId}` : '/recruiter/jobs')}
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 }

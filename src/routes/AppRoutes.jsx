@@ -1,29 +1,75 @@
+import { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignUpPage } from '@/pages/auth/SignUpPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
-import { PreRegisteredPage } from '@/pages/super-admin/PreRegisteredPage';
-import { AllOrganizationsPage } from '@/pages/super-admin/AllOrganizationsPage';
-import { ManageOrganizationPage } from '@/pages/super-admin/ManageOrganizationPage';
-import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
-import { AdminRecruitersPage } from '@/pages/admin/AdminRecruitersPage';
-import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
-import { AdminBillingPage } from '@/pages/admin/AdminBillingPage';
-import { AdminAuditLogsPage } from '@/pages/admin/AdminAuditLogsPage';
-import { RecruiterDashboardPage } from '@/pages/recruiter/RecruiterDashboardPage';
-import { RecruiterJobsPage } from '@/pages/recruiter/RecruiterJobsPage';
-import { RecruiterTemplatesPage } from '@/pages/recruiter/RecruiterTemplatesPage';
-import { JobFormPage } from '@/pages/recruiter/JobFormPage';
-import { JobDetailPage } from '@/pages/recruiter/JobDetailPage';
 import { CandidateOutreachPage } from '@/pages/candidate/CandidateOutreachPage';
 import { CandidateSchedulePage } from '@/pages/candidate/CandidateSchedulePage';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { PublicRoute } from '@/routes/PublicRoute';
 import { RoleRoute } from '@/routes/RoleRoute';
 import { DashboardRedirect } from '@/routes/DashboardRedirect';
+import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { Roles } from '@/lib/roles';
+
+const lazyPage = (importer, exportName) =>
+  lazy(() => importer().then((m) => ({ default: m[exportName] })));
+
+/* Selected dashboard pages — code-split; auth/candidate stay eager */
+const PreRegisteredPage = lazyPage(
+  () => import('@/pages/super-admin/PreRegisteredPage'),
+  'PreRegisteredPage'
+);
+const AllOrganizationsPage = lazyPage(
+  () => import('@/pages/super-admin/AllOrganizationsPage'),
+  'AllOrganizationsPage'
+);
+const ManageOrganizationPage = lazyPage(
+  () => import('@/pages/super-admin/ManageOrganizationPage'),
+  'ManageOrganizationPage'
+);
+const AdminDashboardPage = lazyPage(
+  () => import('@/pages/admin/AdminDashboardPage'),
+  'AdminDashboardPage'
+);
+const AdminRecruitersPage = lazyPage(
+  () => import('@/pages/admin/AdminRecruitersPage'),
+  'AdminRecruitersPage'
+);
+const AdminSettingsPage = lazyPage(
+  () => import('@/pages/admin/AdminSettingsPage'),
+  'AdminSettingsPage'
+);
+const AdminBillingPage = lazyPage(
+  () => import('@/pages/admin/AdminBillingPage'),
+  'AdminBillingPage'
+);
+const AdminAuditLogsPage = lazyPage(
+  () => import('@/pages/admin/AdminAuditLogsPage'),
+  'AdminAuditLogsPage'
+);
+const RecruiterDashboardPage = lazyPage(
+  () => import('@/pages/recruiter/RecruiterDashboardPage'),
+  'RecruiterDashboardPage'
+);
+const RecruiterJobsPage = lazyPage(
+  () => import('@/pages/recruiter/RecruiterJobsPage'),
+  'RecruiterJobsPage'
+);
+const RecruiterTemplatesPage = lazyPage(
+  () => import('@/pages/recruiter/RecruiterTemplatesPage'),
+  'RecruiterTemplatesPage'
+);
+const JobFormPage = lazyPage(
+  () => import('@/pages/recruiter/JobFormPage'),
+  'JobFormPage'
+);
+const JobDetailPage = lazyPage(
+  () => import('@/pages/recruiter/JobDetailPage'),
+  'JobDetailPage'
+);
 
 export function AppRoutes() {
   return (
@@ -33,7 +79,6 @@ export function AppRoutes() {
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       </Route>
 
-      {/* Public token links — no login; works even when staff are logged in */}
       <Route element={<AuthLayout />}>
         <Route path="/candidate/outreach/:token" element={<CandidateOutreachPage />} />
         <Route path="/candidate/schedule/:token" element={<CandidateSchedulePage />} />
@@ -50,28 +95,35 @@ export function AppRoutes() {
         <Route path="/dashboard" element={<DashboardRedirect />} />
 
         <Route element={<RoleRoute allowedRoles={[Roles.SUPER_ADMIN]} />}>
-          <Route path="/super-admin" element={<Navigate to="/super-admin/registrations" replace />} />
-          <Route path="/super-admin/registrations" element={<PreRegisteredPage />} />
-          <Route path="/super-admin/organizations" element={<AllOrganizationsPage />} />
-          <Route path="/super-admin/manage" element={<ManageOrganizationPage />} />
+          <Route element={<DashboardLayout />}>
+            <Route path="/super-admin" element={<Navigate to="/super-admin/registrations" replace />} />
+            <Route path="/super-admin/registrations" element={<PreRegisteredPage />} />
+            <Route path="/super-admin/organizations" element={<AllOrganizationsPage />} />
+            <Route path="/super-admin/manage" element={<ManageOrganizationPage />} />
+          </Route>
         </Route>
 
         <Route element={<RoleRoute allowedRoles={[Roles.ADMIN]} />}>
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/recruiters" element={<AdminRecruitersPage />} />
-          <Route path="/admin/settings" element={<AdminSettingsPage />} />
-          <Route path="/admin/templates" element={<Navigate to="/admin" replace />} />
-          <Route path="/admin/billing" element={<AdminBillingPage />} />
-          <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+          <Route element={<DashboardLayout />}>
+            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/recruiters" element={<AdminRecruitersPage />} />
+            <Route path="/admin/settings" element={<AdminSettingsPage />} />
+            <Route path="/admin/templates" element={<Navigate to="/admin" replace />} />
+            <Route path="/admin/billing" element={<AdminBillingPage />} />
+            <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+            <Route path="/admin/support" element={<Navigate to="/admin" replace />} />
+          </Route>
         </Route>
 
         <Route element={<RoleRoute allowedRoles={[Roles.RECRUITER]} />}>
-          <Route path="/recruiter" element={<RecruiterDashboardPage />} />
-          <Route path="/recruiter/jobs" element={<RecruiterJobsPage />} />
-          <Route path="/recruiter/jobs/new" element={<JobFormPage />} />
-          <Route path="/recruiter/jobs/:jobId/edit" element={<JobFormPage />} />
-          <Route path="/recruiter/jobs/:jobId" element={<JobDetailPage />} />
-          <Route path="/recruiter/templates" element={<RecruiterTemplatesPage />} />
+          <Route element={<DashboardLayout />}>
+            <Route path="/recruiter" element={<RecruiterDashboardPage />} />
+            <Route path="/recruiter/jobs" element={<RecruiterJobsPage />} />
+            <Route path="/recruiter/jobs/new" element={<JobFormPage />} />
+            <Route path="/recruiter/jobs/:jobId/edit" element={<JobFormPage />} />
+            <Route path="/recruiter/jobs/:jobId" element={<JobDetailPage />} />
+            <Route path="/recruiter/templates" element={<RecruiterTemplatesPage />} />
+          </Route>
         </Route>
       </Route>
 

@@ -4,6 +4,22 @@ export const Roles = {
   RECRUITER: 'RECRUITER',
 };
 
+/** Human-readable labels for system roles (not job designation). */
+export const roleLabels = {
+  [Roles.SUPER_ADMIN]: 'Super Admin',
+  [Roles.ADMIN]: 'Organization Admin',
+  [Roles.RECRUITER]: 'Recruiter',
+};
+
+/**
+ * @param {string|{ name?: string }|null|undefined} role - Role enum string or API `{ name }`
+ */
+export const getRoleLabel = (role) => {
+  const name = typeof role === 'string' ? role : role?.name;
+  if (!name) return null;
+  return roleLabels[name] || String(name).replaceAll('_', ' ');
+};
+
 export const getDashboardPath = (role) => {
   const paths = {
     [Roles.SUPER_ADMIN]: '/super-admin/registrations',

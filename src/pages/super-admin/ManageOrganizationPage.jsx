@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { DashboardShell } from '@/components/layout/DashboardShell';
+import { usePageTitle } from '@/context/PageTitleContext';
 import { OrgListTable } from '@/components/super-admin/OrgListTable';
 import { ManageOrgPanel } from '@/components/super-admin/ManageOrgPanel';
 import { ListToolbar } from '@/components/super-admin/ListToolbar';
 import { PaginationBar } from '@/components/super-admin/PaginationBar';
+import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { fetchCountries } from '@/store/slices/countrySlice';
 import {
@@ -19,6 +20,7 @@ const SORT_OPTIONS = [
 ];
 
 export function ManageOrganizationPage() {
+  usePageTitle('Manage organizations');
   const dispatch = useDispatch();
   const { items, pagination, loading } = useSelector(selectOrganizations);
   const [selectedId, setSelectedId] = useState(null);
@@ -45,29 +47,31 @@ export function ManageOrganizationPage() {
     load();
   };
 
+  if (loading && items.length === 0) {
+    return <PageContentSkeleton />;
+  }
+
   return (
-    <DashboardShell title="Manage organizations">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <ListToolbar
-          search={search}
-          onSearchChange={setSearch}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          sortOrder={sortOrder}
-          onSortOrderChange={setSortOrder}
-          sortOptions={SORT_OPTIONS}
-          placeholder="Search organizations to manage..."
+    <div className="mx-auto max-w-6xl space-y-6">
+      <ListToolbar
+        search={search}
+        onSearchChange={setSearch}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
+        sortOptions={SORT_OPTIONS}
+        placeholder="Search organizations to manage..."
+      />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <OrgListTable
+          items={items}
+          loading={loading}
+          onSelect={setSelectedId}
         />
-        <div className="grid gap-6 lg:grid-cols-2">
-          <OrgListTable
-            items={items}
-            loading={loading}
-            onSelect={setSelectedId}
-          />
-          <ManageOrgPanel organizationId={selectedId} onDeleted={handleDeleted} />
-        </div>
-        <PaginationBar pagination={pagination} onPageChange={setPage} />
+        <ManageOrgPanel organizationId={selectedId} onDeleted={handleDeleted} />
       </div>
-    </DashboardShell>
+      <PaginationBar pagination={pagination} onPageChange={setPage} />
+    </div>
   );
 }
