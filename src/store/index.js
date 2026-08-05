@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import { injectStore } from '@/api/storeAccess';
 import authReducer from './slices/authSlice';
 import organizationReducer from './slices/organizationSlice';
 import registrationReducer from './slices/registrationSlice';
@@ -22,5 +23,8 @@ const store = configureStore({
     recruitment: recruitmentReducer,
   },
 });
+
+// Must run after configureStore so axios interceptors can dispatch without importing this module.
+injectStore(store);
 
 export default store;
