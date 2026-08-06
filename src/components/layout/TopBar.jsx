@@ -40,7 +40,7 @@ function HeaderAvatar({ account, logoUrl }) {
   );
 }
 
-export function TopBar({ title }) {
+export function TopBar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { account } = useSelector(selectAuth);
@@ -81,15 +81,12 @@ export function TopBar({ title }) {
   const roleLabel = getRoleLabel(account?.role);
 
   return (
-    <header className="flex items-center justify-between gap-4 border-b border-border bg-card px-6 py-4">
-      <div className="min-w-0">
-        <h1 className="text-xl font-bold text-foreground">{title}</h1>
-        <p className="text-sm text-muted">
-          Welcome back, {account?.firstName || 'there'} {account?.lastName || ''} 👋
-        </p>
-      </div>
+    <header className="flex items-center justify-between gap-4 border-b border-border bg-card px-6 py-3">
+      <p className="min-w-0 truncate text-sm text-muted">
+        Welcome back, {account?.firstName || 'there'} {account?.lastName || ''} 👋
+      </p>
 
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3">
         <div className="hidden lg:block">
           <SearchInput value={search} onChange={setSearch} placeholder="Search anything..." />
         </div>

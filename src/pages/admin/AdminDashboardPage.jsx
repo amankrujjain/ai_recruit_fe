@@ -5,7 +5,7 @@ export function AdminDashboardPage() {
   usePageTitle('Dashboard');
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto w-full max-w-8xl">
       <AdminOverview />
     </div>
   );

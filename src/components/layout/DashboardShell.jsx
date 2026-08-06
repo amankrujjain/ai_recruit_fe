@@ -6,7 +6,6 @@ import { selectAuth } from '@/store/slices/authSlice';
 import { fetchMyOrganization, fetchBilling, selectAdminOrg } from '@/store/slices/adminOrgSlice';
 import { SidebarNav } from '@/components/layout/SidebarNav';
 import { TopBar } from '@/components/layout/TopBar';
-import { usePageTitleState } from '@/context/PageTitleContext';
 import { Roles } from '@/lib/roles';
 
 function PlanCard({ planName, renewalDate }) {
@@ -47,7 +46,6 @@ export function DashboardShell({ children }) {
   const dispatch = useDispatch();
   const { account } = useSelector(selectAuth);
   const { organization, billing } = useSelector(selectAdminOrg);
-  const { title } = usePageTitleState();
   const isAdmin = account?.role === Roles.ADMIN;
 
   useEffect(() => {
@@ -98,7 +96,7 @@ export function DashboardShell({ children }) {
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="shrink-0">
-          <TopBar title={title} />
+          <TopBar />
         </div>
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6">
           {children}

@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { API_BASE, storageKeys } from '@/lib/constants';
-import store from '@/store';
-import { clearSession, setTokens } from '@/store/slices/authSlice';
+import { getStore } from './storeAccess';
 
 const apiClient = axios.create({
   baseURL: API_BASE,
@@ -37,6 +36,10 @@ const isSessionDeadStatus = (status, message = '') => {
 
 let refreshPromise = null;
 
+/** Plain action types — avoids importing authSlice (which imports authApi → client). */
+const SET_TOKENS = 'auth/setTokens';
+const CLEAR_SESSION = 'auth/clearSession';
+
 const refreshAccessToken = async () => {
   const refreshToken = localStorage.getItem(storageKeys.refreshToken);
   if (!refreshToken) {
@@ -55,16 +58,19 @@ const refreshAccessToken = async () => {
     throw new Error('Invalid refresh response');
   }
 
-  store.dispatch(setTokens({
-    accessToken: payload.accessToken,
-    refreshToken: payload.refreshToken,
-  }));
+  getStore().dispatch({
+    type: SET_TOKENS,
+    payload: {
+      accessToken: payload.accessToken,
+      refreshToken: payload.refreshToken,
+    },
+  });
 
   return payload.accessToken;
 };
 
 const forceLogoutToLogin = () => {
-  store.dispatch(clearSession());
+  getStore().dispatch({ type: CLEAR_SESSION });
   if (!window.location.pathname.startsWith('/login')) {
     window.location.assign('/login');
   }
