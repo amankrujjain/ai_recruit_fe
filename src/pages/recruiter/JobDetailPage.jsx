@@ -358,7 +358,8 @@ const handleActivate = () => {
     );
   }
 
-  return (
+return (
+  <>
     <div className="mx-auto max-w-6xl space-y-6">
         <JobDetailHeader
   job={job}
@@ -461,12 +462,12 @@ const handleActivate = () => {
         onConfirm={handleConfirm}
       />
 
-      <InterviewScorecardDrawer
+           <InterviewScorecardDrawer
         open={Boolean(interviewDrawer)}
         candidateJobId={interviewDrawer?.candidateJobId}
         candidateName={interviewDrawer?.candidateName}
         onOpenChange={(open) => { if (!open) setInterviewDrawer(null); }}
       />
-    </div>
+    </>
   );
 }
