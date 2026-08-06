@@ -7,6 +7,7 @@ import {
   updateWhatsAppTemplateRequest,
   getBillingRequest,
   getAuditLogsRequest,
+  getAuditStatsRequest,
 } from '@/api/adminOrgApi';
 
 export const fetchMyOrganization = createAsyncThunk(
@@ -93,6 +94,18 @@ export const fetchAuditLogs = createAsyncThunk(
   }
 );
 
+export const fetchAuditStats = createAsyncThunk(
+  'adminOrg/auditStats',
+  async (params, { rejectWithValue }) => {
+    try {
+      const { data } = await getAuditStatsRequest(params);
+      return data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to load audit stats');
+    }
+  }
+);
+
 const adminOrgSlice = createSlice({
   name: 'adminOrg',
   initialState: {
@@ -100,11 +113,13 @@ const adminOrgSlice = createSlice({
     billing: null,
     auditLogs: [],
     auditPagination: null,
+    auditStats: null,
     loading: false,
     saving: false,
     logoUploading: false,
     billingLoading: false,
     auditLoading: false,
+    auditStatsLoading: false,
     error: null,
   },
   reducers: {},
@@ -161,7 +176,13 @@ const adminOrgSlice = createSlice({
         s.auditLogs = a.payload.items;
         s.auditPagination = a.payload.pagination;
       })
-      .addCase(fetchAuditLogs.rejected, (s) => { s.auditLoading = false; });
+      .addCase(fetchAuditLogs.rejected, (s) => { s.auditLoading = false; })
+      .addCase(fetchAuditStats.pending, (s) => { s.auditStatsLoading = true; })
+      .addCase(fetchAuditStats.fulfilled, (s, a) => {
+        s.auditStatsLoading = false;
+        s.auditStats = a.payload;
+      })
+      .addCase(fetchAuditStats.rejected, (s) => { s.auditStatsLoading = false; });
   },
 });
 

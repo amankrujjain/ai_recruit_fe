@@ -7,6 +7,7 @@ export function StatCard({ icon: Icon, label, value, trend, subtext, tone = 'bra
     brand: 'bg-brand-50 text-brand-500',
     success: 'bg-success-500/10 text-success-600',
     warning: 'bg-warning-500/10 text-warning-500',
+    danger: 'bg-red-50 text-red-600',
     accent: 'bg-brand-50 text-brand-500',
   };
 
