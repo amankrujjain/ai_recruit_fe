@@ -17,6 +17,8 @@
   --color-border: #e2e8f0;
   --color-foreground: #0f172a;
   --radius-lg: 0.75rem;
+  --breakpoint-8xl: 88rem;
+  --container-8xl: 88rem;
 }
 
 * { box-sizing: border-box; }

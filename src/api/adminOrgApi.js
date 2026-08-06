@@ -25,3 +25,6 @@ export const getBillingRequest = () =>
 
 export const getAuditLogsRequest = (params) =>
   apiClient.get('/organizations/me/audit-logs', { params });
+
+export const getAuditStatsRequest = (params) =>
+  apiClient.get('/organizations/me/audit-logs/stats', { params });

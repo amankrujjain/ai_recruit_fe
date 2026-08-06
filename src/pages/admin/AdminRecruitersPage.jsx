@@ -4,7 +4,7 @@ import { Building2, Mail, RotateCcw, UserCheck, UserPlus, Users } from 'lucide-r
 import { PageHeader } from '@/components/layout/PageHeader';
 import { usePageTitle } from '@/context/PageTitleContext';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Select } from '@/components/ui/Select';
+import { FilterSelect } from '@/components/ui/SelectMenu';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Label } from '@/components/ui/Label';
 import { StatCard } from '@/components/admin/dashboard/StatCard';
@@ -93,7 +93,7 @@ export function AdminRecruitersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto w-full max-w-8xl space-y-6">
         <PageHeader
           title="HR Team"
           subtitle="Invite and manage HR professionals who will use RecruitAI."
@@ -154,32 +154,32 @@ export function AdminRecruitersPage() {
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
                 {/* TODO(api): department filter not supported by backend yet */}
-                <div className="w-full space-y-1.5 sm:w-40">
+                <div className="w-full space-y-1.5 sm:w-44">
                   <Label className="text-xs font-medium text-muted">Department</Label>
-                  <Select
+                  <FilterSelect
                     value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    className="h-10"
-                  >
-                    <option value="">All</option>
-                    <option value="talent">Talent Acquisition</option>
-                    <option value="recruitment">Recruitment</option>
-                    <option value="campus">Campus Hiring</option>
-                  </Select>
+                    onValueChange={setDepartment}
+                    allLabel="All"
+                    options={[
+                      { value: 'talent', label: 'Talent Acquisition' },
+                      { value: 'recruitment', label: 'Recruitment' },
+                      { value: 'campus', label: 'Campus Hiring' },
+                    ]}
+                  />
                 </div>
 
                 <div className="w-full space-y-1.5 sm:w-36">
                   <Label className="text-xs font-medium text-muted">Status</Label>
-                  <Select
+                  <FilterSelect
                     value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="h-10"
-                  >
-                    <option value="">All</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="DISABLED">Disabled</option>
-                  </Select>
+                    onValueChange={setStatus}
+                    allLabel="All"
+                    options={[
+                      { value: 'PENDING', label: 'Pending' },
+                      { value: 'ACTIVE', label: 'Active' },
+                      { value: 'DISABLED', label: 'Disabled' },
+                    ]}
+                  />
                 </div>
 
                 <button
