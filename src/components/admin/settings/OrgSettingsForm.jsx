@@ -49,12 +49,21 @@ export function OrgSettingsForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // const payload = {
+    //   ...form,
+    //   defaultCallDuration: Number(form.defaultCallDuration),
+    //   maxReschedules: Number(form.maxReschedules),
+    //   city: form.city || null,
+    // };
+
     const payload = {
-      ...form,
-      defaultCallDuration: Number(form.defaultCallDuration),
-      maxReschedules: Number(form.maxReschedules),
-      city: form.city || null,
-    };
+  city: form.city || null,
+  timezone: form.timezone,
+  workingHoursStart: form.workingHoursStart,
+  workingHoursEnd: form.workingHoursEnd,
+  defaultCallDuration: Number(form.defaultCallDuration),
+  maxReschedules: Number(form.maxReschedules),
+};
     const result = await dispatch(updateOrgSettings(payload));
     if (updateOrgSettings.fulfilled.match(result)) toast.success('Settings saved');
     else toast.error(result.payload || 'Failed to save');
@@ -81,7 +90,12 @@ export function OrgSettingsForm() {
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label>Name</Label>
-            <Input value={form.organizationName} onChange={onChange('organizationName')} required />
+            {/* <Input value={form.organizationName} onChange={onChange('organizationName')} required /> */}
+            <Input
+                value={form.organizationName}
+                readOnly
+                required
+            />
           </div>
           <div className="space-y-2">
             <Label>Country</Label>

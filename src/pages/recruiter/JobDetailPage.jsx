@@ -233,6 +233,19 @@ export function JobDetailPage() {
       return;
     }
 
+    if (confirmDialog.type === 'activate') {
+  const result = await dispatch(activateJob(jobId));
+  closeConfirm();
+
+  if (activateJob.fulfilled.match(result)) {
+    toast.success('Job activated');
+  } else {
+    toast.error(result.payload || 'Failed to activate');
+  }
+
+  return;
+}
+
     if (confirmDialog.type === 'delete-candidate') {
       const candidateJobId = confirmDialog.candidateJobId;
       const result = await dispatch(deleteCandidate({ jobId, candidateJobId }));
@@ -250,16 +263,26 @@ export function JobDetailPage() {
     }
   };
 
-  const handleActivate = async () => {
-  if (!window.confirm('Activate this job? It will start accepting new candidates again.')) return;
+//   const handleActivate = async () => {
+//   if (!window.confirm('Activate this job? It will start accepting new candidates again.')) return;
 
-  const result = await dispatch(activateJob(jobId));
+//   const result = await dispatch(activateJob(jobId));
 
-  if (activateJob.fulfilled.match(result)) {
-    toast.success('Job activated');
-  } else {
-    toast.error(result.payload || 'Failed to activate');
-  }
+//   if (activateJob.fulfilled.match(result)) {
+//     toast.success('Job activated');
+//   } else {
+//     toast.error(result.payload || 'Failed to activate');
+//   }
+// };
+
+const handleActivate = () => {
+  setConfirmDialog({
+    type: 'activate',
+    title: 'Activate this job?',
+    description: 'It will start accepting new candidates again.',
+    confirmLabel: 'Activate',
+    variant: 'default',
+  });
 };
 
   // const handleExcel = async (file) => {
@@ -335,7 +358,8 @@ export function JobDetailPage() {
     );
   }
 
-  return (
+return (
+  <>
     <div className="mx-auto max-w-6xl space-y-6">
         <JobDetailHeader
   job={job}
@@ -438,12 +462,12 @@ export function JobDetailPage() {
         onConfirm={handleConfirm}
       />
 
-      <InterviewScorecardDrawer
+           <InterviewScorecardDrawer
         open={Boolean(interviewDrawer)}
         candidateJobId={interviewDrawer?.candidateJobId}
         candidateName={interviewDrawer?.candidateName}
         onOpenChange={(open) => { if (!open) setInterviewDrawer(null); }}
       />
-    </div>
+    </>
   );
 }
