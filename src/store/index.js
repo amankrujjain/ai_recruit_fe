@@ -9,6 +9,7 @@ import countryReducer from './slices/countrySlice';
 import jobsReducer from './slices/jobsSlice';
 import candidatesReducer from './slices/candidatesSlice';
 import recruitmentReducer from './slices/recruitmentSlice';
+import supportReducer from './slices/supportSlice';
 
 const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ const store = configureStore({
     jobs: jobsReducer,
     candidates: candidatesReducer,
     recruitment: recruitmentReducer,
+    support: supportReducer,
   },
 });
 

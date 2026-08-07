@@ -30,6 +30,11 @@ const ManageOrganizationPage = lazyPage(
   () => import('@/pages/super-admin/ManageOrganizationPage'),
   'ManageOrganizationPage'
 );
+
+const SupportCategoriesPage = lazyPage(
+  () => import('@/pages/super-admin/SupportCategoriesPage'),
+  'SupportCategoriesPage'
+);
 const AdminDashboardPage = lazyPage(
   () => import('@/pages/admin/AdminDashboardPage'),
   'AdminDashboardPage'
@@ -71,6 +76,11 @@ const JobDetailPage = lazyPage(
   'JobDetailPage'
 );
 
+const SupportCenterPage = lazyPage(
+  () => import('@/pages/support/SupportCenterPage'),
+  'SupportCenterPage'
+);
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -95,13 +105,19 @@ export function AppRoutes() {
         <Route path="/dashboard" element={<DashboardRedirect />} />
 
         <Route element={<RoleRoute allowedRoles={[Roles.SUPER_ADMIN]} />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/super-admin" element={<Navigate to="/super-admin/registrations" replace />} />
-            <Route path="/super-admin/registrations" element={<PreRegisteredPage />} />
-            <Route path="/super-admin/organizations" element={<AllOrganizationsPage />} />
-            <Route path="/super-admin/manage" element={<ManageOrganizationPage />} />
-          </Route>
-        </Route>
+  <Route element={<DashboardLayout />}>
+    <Route path="/super-admin" element={<Navigate to="/super-admin/registrations" replace />} />
+
+    <Route path="/super-admin/registrations" element={<PreRegisteredPage />} />
+
+    <Route path="/super-admin/organizations" element={<AllOrganizationsPage />} />
+
+    <Route path="/super-admin/manage" element={<ManageOrganizationPage />} />
+
+    <Route path="/super-admin/support" element={<SupportCategoriesPage />} />
+
+  </Route>
+</Route>
 
         <Route element={<RoleRoute allowedRoles={[Roles.ADMIN]} />}>
           <Route element={<DashboardLayout />}>
@@ -111,7 +127,7 @@ export function AppRoutes() {
             <Route path="/admin/templates" element={<Navigate to="/admin" replace />} />
             <Route path="/admin/billing" element={<AdminBillingPage />} />
             <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
-            <Route path="/admin/support" element={<Navigate to="/admin" replace />} />
+            <Route path="/admin/support" element={<SupportCenterPage />} />
           </Route>
         </Route>
 
@@ -123,6 +139,7 @@ export function AppRoutes() {
             <Route path="/recruiter/jobs/:jobId/edit" element={<JobFormPage />} />
             <Route path="/recruiter/jobs/:jobId" element={<JobDetailPage />} />
             <Route path="/recruiter/templates" element={<RecruiterTemplatesPage />} />
+            <Route path="/recruiter/support" element={<SupportCenterPage />} />
           </Route>
         </Route>
       </Route>

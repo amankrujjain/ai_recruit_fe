@@ -15,11 +15,12 @@ import { cn } from '@/lib/utils';
 import { Roles } from '@/lib/roles';
 
 const navByRole = {
-  [Roles.SUPER_ADMIN]: [
-    { to: '/super-admin/registrations', label: 'Pre-registered', icon: UserPlus },
-    { to: '/super-admin/organizations', label: 'All organizations', icon: Building2 },
-    { to: '/super-admin/manage', label: 'Manage', icon: Settings2 },
-  ],
+ [Roles.SUPER_ADMIN]: [
+  { to: '/super-admin/registrations', label: 'Pre-registered', icon: UserPlus },
+  { to: '/super-admin/organizations', label: 'All organizations', icon: Building2 },
+  { to: '/super-admin/manage', label: 'Manage', icon: Settings2 },
+  { to: '/super-admin/support', label: 'Support', icon: LifeBuoy },
+],
   [Roles.ADMIN]: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/admin/recruiters', label: 'HR Team', icon: Users },
@@ -29,11 +30,12 @@ const navByRole = {
     { to: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
     { to: '/admin/support', label: 'Support', icon: LifeBuoy },
   ],
-  [Roles.RECRUITER]: [
-    { to: '/recruiter', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/recruiter/jobs', label: 'Jobs', icon: Briefcase },
-    { to: '/recruiter/templates', label: 'Templates', icon: FileText },
-  ],
+ [Roles.RECRUITER]: [
+  { to: '/recruiter', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/recruiter/jobs', label: 'Jobs', icon: Briefcase },
+  { to: '/recruiter/templates', label: 'Templates', icon: FileText },
+  { to: '/recruiter/support', label: 'Support', icon: LifeBuoy },
+],
 };
 
 export function SidebarNav({ role }) {
