@@ -19,7 +19,7 @@ const navByRole = {
   { to: '/super-admin/registrations', label: 'Pre-registered', icon: UserPlus },
   { to: '/super-admin/organizations', label: 'All organizations', icon: Building2 },
   { to: '/super-admin/manage', label: 'Manage', icon: Settings2 },
-  { to: '/super-admin/support', label: 'Support', icon: LifeBuoy },
+  { to: '/super-admin/support', label: 'Support & FAQ', icon: LifeBuoy },
 ],
   [Roles.ADMIN]: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
