@@ -48,7 +48,7 @@ export function ManageOrgPanel({ organizationId, onDeleted }) {
     );
   }
 
-  if (loading || !form) {
+  if (loading || !form || !selected) {
     return <Card><CardContent className="py-10 text-sm text-muted">Loading...</CardContent></Card>;
   }
 

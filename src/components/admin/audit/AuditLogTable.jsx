@@ -36,7 +36,7 @@ function SortableTh({ label, column, sort, onSort, className }) {
   );
 }
 
-function compareLogs(a, b, column) {
+export function compareLogs(a, b, column) {
   const statusA = deriveStatus(a);
   const statusB = deriveStatus(b);
 

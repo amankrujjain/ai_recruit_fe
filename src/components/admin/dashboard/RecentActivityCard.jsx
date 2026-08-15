@@ -3,7 +3,7 @@ import { Activity, CalendarCheck, FileText, Mail, UserPlus, Users } from 'lucide
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { relativeTime } from '@/lib/relativeTime';
 
-function iconForAction(action = '') {
+export function iconForAction(action = '') {
   const a = action.toLowerCase();
   if (a.includes('invite')) return UserPlus;
   if (a.includes('join') || a.includes('recruiter') || a.includes('user')) return Users;
