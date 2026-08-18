@@ -35,8 +35,23 @@ html,
 body,
 #root {
   height: 100%;
+  max-height: 100%;
+  overflow: hidden;
 }
 
-#root {
-  min-height: 100%;
+input[type='range'] {
+  appearance: none;
+  background: transparent;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+  height: 8px;
+}
+
+input[type='range']::-moz-range-track {
+  background: transparent;
+  border: none;
+  height: 8px;
 }
