@@ -6,7 +6,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Badge } from '@/components/ui/Badge';
 import { StatusDot } from '@/components/ui/StatusDot';
 import { Avatar } from '@/components/ui/Avatar';
-import { FilterSelect } from '@/components/ui/SelectMenu';
+import { FilterSelect, FormSelect } from '@/components/ui/SelectMenu';
 import { UserStatus } from '@/lib/userStatus';
 
 describe('TagInput', () => {
@@ -165,5 +165,53 @@ describe('FilterSelect', () => {
     const allOption = await screen.findByRole('option', { name: 'All statuses' });
     await user.click(allOption);
     expect(onValueChange).toHaveBeenCalledWith('');
+  });
+});
+
+describe('FormSelect', () => {
+  it('shows placeholder when empty and selected label when valued', () => {
+    const onValueChange = vi.fn();
+    const { rerender } = render(
+      <FormSelect
+        value=""
+        onValueChange={onValueChange}
+        placeholder="Select industry"
+        options={[
+          { value: 'IT', label: 'Information Technology' },
+          { value: 'Finance', label: 'Finance' },
+        ]}
+      />
+    );
+    expect(screen.getByRole('combobox')).toHaveTextContent('Select industry');
+
+    rerender(
+      <FormSelect
+        value="IT"
+        onValueChange={onValueChange}
+        placeholder="Select industry"
+        options={[
+          { value: 'IT', label: 'Information Technology' },
+          { value: 'Finance', label: 'Finance' },
+        ]}
+      />
+    );
+    expect(screen.getByRole('combobox')).toHaveTextContent('Information Technology');
+  });
+
+  it('emits the option value when chosen', async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(
+      <FormSelect
+        value=""
+        onValueChange={onValueChange}
+        placeholder="Select size"
+        options={[{ value: '11 - 50', label: '11 - 50' }]}
+      />
+    );
+
+    await user.click(screen.getByRole('combobox'));
+    await user.click(await screen.findByRole('option', { name: '11 - 50' }));
+    expect(onValueChange).toHaveBeenCalledWith('11 - 50');
   });
 });

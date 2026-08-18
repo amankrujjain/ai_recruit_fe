@@ -34,7 +34,7 @@ export const SelectContent = forwardRef(({ className, children, position = 'popp
       position={position}
       sideOffset={6}
       className={cn(
-        'z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-slate-900/10',
+        'z-50 max-h-80 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-slate-900/10',
         className
       )}
       {...props}
@@ -71,6 +71,49 @@ export const SelectItem = forwardRef(({ className, children, ...props }, ref) =>
 SelectItem.displayName = 'SelectItem';
 
 const ALL_VALUE = '__all__';
+const EMPTY_VALUE = '__empty__';
+
+/**
+ * Form select (no "all" option). Empty string / null shows the placeholder.
+ * options: [{ value, label }]
+ */
+export function FormSelect({
+  value,
+  onValueChange,
+  options = [],
+  placeholder = 'Select…',
+  className,
+  disabled = false,
+  leading,
+}) {
+  const radixValue = value === '' || value == null ? EMPTY_VALUE : String(value);
+
+  const handleChange = (next) => {
+    if (next === EMPTY_VALUE) return;
+    onValueChange?.(next);
+  };
+
+  return (
+    <SelectRoot value={radixValue} onValueChange={handleChange} disabled={disabled}>
+      <SelectTrigger className={className}>
+        <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+          {leading}
+          <SelectValue placeholder={placeholder} />
+        </span>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={EMPTY_VALUE} disabled className="hidden">
+          {placeholder}
+        </SelectItem>
+        {options.map((opt) => (
+          <SelectItem key={String(opt.value)} value={String(opt.value)}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </SelectRoot>
+  );
+}
 
 /**
  * Filter-friendly select: value "" means "all".

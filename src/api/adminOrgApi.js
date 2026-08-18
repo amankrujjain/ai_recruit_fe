@@ -6,6 +6,12 @@ export const getMyOrganizationRequest = () =>
 export const updateOrgSettingsRequest = (payload) =>
   apiClient.patch('/organizations/me/settings', payload);
 
+export const updateAiPreferencesRequest = (payload) =>
+  apiClient.patch('/organizations/me/ai-preferences', payload);
+
+export const getVoicesRequest = () =>
+  apiClient.get('/organizations/me/resources/voices');
+
 export const uploadOrgLogoRequest = (file) => {
   const form = new FormData();
   form.append('file', file);

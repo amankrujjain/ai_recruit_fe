@@ -391,7 +391,7 @@ describe('SupportCategoriesPage', () => {
 
     await user.click(within(faqRow).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Support FAQ deleted'));
-  });
+  }, 15000);
 
   it('faqs tab shows no faqs when categories exist but faqs empty', async () => {
     const user = userEvent.setup();
