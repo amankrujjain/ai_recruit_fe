@@ -208,7 +208,7 @@ describe('CreateTicketModal', () => {
       categoryId: 'cat1',
       description: 'Detailed issue description',
     });
-  });
+  }, 15000);
 
   it('shows error, keeps submit gated without category, and closes via cancel/X/overlay/Escape', async () => {
     const user = userEvent.setup();

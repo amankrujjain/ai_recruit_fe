@@ -2,12 +2,14 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
   getMyOrganizationRequest,
   updateOrgSettingsRequest,
+  updateAiPreferencesRequest,
   uploadOrgLogoRequest,
   updateEmailTemplateRequest,
   updateWhatsAppTemplateRequest,
   getBillingRequest,
   getAuditLogsRequest,
   getAuditStatsRequest,
+  getVoicesRequest,
 } from '@/api/adminOrgApi';
 
 export const fetchMyOrganization = createAsyncThunk(
@@ -30,6 +32,30 @@ export const updateOrgSettings = createAsyncThunk(
       return data.data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Failed to update settings');
+    }
+  }
+);
+
+export const updateAiPreferences = createAsyncThunk(
+  'adminOrg/updateAiPreferences',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { data } = await updateAiPreferencesRequest(payload);
+      return data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to update AI preferences');
+    }
+  }
+);
+
+export const fetchVoices = createAsyncThunk(
+  'adminOrg/fetchVoices',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await getVoicesRequest();
+      return data?.data?.voices ?? [];
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to load voices');
     }
   }
 );
@@ -110,6 +136,7 @@ const adminOrgSlice = createSlice({
   name: 'adminOrg',
   initialState: {
     organization: null,
+    voices: [],
     billing: null,
     auditLogs: [],
     auditPagination: null,
@@ -117,6 +144,7 @@ const adminOrgSlice = createSlice({
     loading: false,
     saving: false,
     logoUploading: false,
+    voicesLoading: false,
     billingLoading: false,
     auditLoading: false,
     auditStatsLoading: false,
@@ -141,6 +169,24 @@ const adminOrgSlice = createSlice({
       })
       .addCase(updateOrgSettings.rejected, (s, a) => {
         s.saving = false;
+        s.error = a.payload;
+      })
+      .addCase(updateAiPreferences.pending, (s) => { s.saving = true; })
+      .addCase(updateAiPreferences.fulfilled, (s, a) => {
+        s.saving = false;
+        s.organization = a.payload;
+      })
+      .addCase(updateAiPreferences.rejected, (s, a) => {
+        s.saving = false;
+        s.error = a.payload;
+      })
+      .addCase(fetchVoices.pending, (s) => { s.voicesLoading = true; })
+      .addCase(fetchVoices.fulfilled, (s, a) => {
+        s.voicesLoading = false;
+        s.voices = a.payload;
+      })
+      .addCase(fetchVoices.rejected, (s, a) => {
+        s.voicesLoading = false;
         s.error = a.payload;
       })
       .addCase(uploadOrgLogo.pending, (s) => { s.logoUploading = true; })

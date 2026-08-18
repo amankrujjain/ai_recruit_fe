@@ -32,7 +32,9 @@ vi.mock('@/api/recruiterApi', () => ({
 vi.mock('@/api/adminOrgApi', () => ({
   getMyOrganizationRequest: vi.fn(),
   updateOrgSettingsRequest: vi.fn(),
+  updateAiPreferencesRequest: vi.fn(),
   uploadOrgLogoRequest: vi.fn(),
+  getVoicesRequest: vi.fn(),
   updateEmailTemplateRequest: vi.fn(),
   updateWhatsAppTemplateRequest: vi.fn(),
   getBillingRequest: vi.fn(),
@@ -72,6 +74,8 @@ vi.mock('@/store/slices/adminOrgSlice', async (importOriginal) => {
     ...actual,
     updateOrgSettings: wrap(actual.updateOrgSettings),
     uploadOrgLogo: wrap(actual.uploadOrgLogo),
+    updateAiPreferences: wrap(actual.updateAiPreferences),
+    fetchVoices: wrap(actual.fetchVoices),
     updateEmailTemplate: wrap(actual.updateEmailTemplate),
     updateWhatsAppTemplate: wrap(actual.updateWhatsAppTemplate),
   };
@@ -581,136 +585,164 @@ describe('OrgSettingsForm', () => {
       data: {
         data: {
           organizationName: 'Acme Corp',
-          city: 'Austin',
+          organizationEmail: 'admin@acme.com',
+          industry: 'Information Technology',
+          companySize: '201 - 500',
+          website: 'https://acme.com',
+          phone: '+1 999 000 1111',
           timezone: 'America/Chicago',
           workingHoursStart: '09:00',
           workingHoursEnd: '18:00',
-          defaultCallDuration: 30,
-          maxReschedules: 3,
+          workingDays: ['mon', 'tue', 'wed'],
           logoUrl: 'https://cdn.example/logo.png',
           country: { name: 'United States' },
+          settings: {
+            displayName: 'Acme Brand',
+            followUpEnabled: true,
+            interviewLanguage: 'English',
+            interviewStyle: 'Balanced',
+            questionDifficulty: 'Medium',
+            realtimeTranscription: true,
+            silenceTimeoutSec: 10,
+
+            useJobDescription: true,
+            useResume: false,
+            useCompanyInfo: false,
+            useCustomDocs: false,
+            allowInternetKnowledge: true,
+            maxSources: 5,
+
+            scoringMode: 'default',
+            scoreTechnical: 40,
+            scoreCommunication: 20,
+            scoreProblemSolving: 20,
+            scoreExperience: 10,
+            scoreOthers: 10,
+
+            useConversationalMemory: true,
+            maintainContext: true,
+            adaptQuestions: true,
+            beConcise: false,
+            encourageDetailedAnswers: true,
+
+            voiceId: 'voice-1',
+          },
         },
       },
     });
   });
 
-  it('loads, saves, uploads logo, and handles errors', async () => {
+  it('loads, saves general, uploads logo, and handles errors', async () => {
     const user = userEvent.setup();
+
     updateOrgSettingsRequest.mockResolvedValueOnce({
       data: {
         data: {
           organizationName: 'Acme Corp',
-          city: 'Dallas',
-          timezone: 'UTC',
-          workingHoursStart: '10:00',
-          workingHoursEnd: '19:00',
-          defaultCallDuration: 45,
-          maxReschedules: 2,
+          organizationEmail: 'admin@acme.com',
+          industry: 'Information Technology',
+          companySize: '201 - 500',
+          website: 'https://acme.com',
+          phone: '+1 999 000 1111',
+          timezone: 'America/Chicago',
+          workingHoursStart: '09:00',
+          workingHoursEnd: '18:00',
+          workingDays: ['mon', 'tue', 'wed'],
           logoUrl: 'https://cdn.example/logo.png',
           country: { name: 'United States' },
+          settings: { displayName: 'Acme Brand' },
         },
       },
     });
+
     uploadOrgLogoRequest.mockResolvedValueOnce({
-      data: { data: { logoUrl: 'https://cdn.example/new.png' } },
+      data: {
+        data: {
+          organizationName: 'Acme Corp',
+          organizationEmail: 'admin@acme.com',
+          industry: 'Information Technology',
+          companySize: '201 - 500',
+          website: 'https://acme.com',
+          phone: '+1 999 000 1111',
+          timezone: 'America/Chicago',
+          workingHoursStart: '09:00',
+          workingHoursEnd: '18:00',
+          workingDays: ['mon', 'tue', 'wed'],
+          logoUrl: 'https://cdn.example/new.png',
+          country: { name: 'United States' },
+          settings: { displayName: 'Acme Brand' },
+        },
+      },
     });
 
     renderWithProviders(<OrgSettingsForm />);
     await waitFor(() => expect(screen.getByDisplayValue('Acme Corp')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByDisplayValue('Acme Brand')).toBeInTheDocument());
 
+    // Logo upload flow
     await user.click(screen.getByRole('button', { name: /change logo/i }));
-
-    const cityInput = screen.getByDisplayValue('Austin');
-    await user.clear(cityInput);
-    await user.type(cityInput, 'Dallas');
-    await user.click(screen.getByRole('button', { name: /save settings/i }));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Settings saved'));
-
     const fileInput = document.querySelector('input[type="file"]');
     const file = new File(['img'], 'logo.png', { type: 'image/png' });
     await user.upload(fileInput, file);
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Logo uploaded'));
 
+    // Save General flow
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('General settings saved'));
+    expect(updateOrgSettingsRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        phone: '+1 999 000 1111',
+        organizationEmail: 'admin@acme.com',
+        displayName: 'Acme Brand',
+      })
+    );
+
+    // General save error
     updateOrgSettingsRequest.mockRejectedValueOnce({});
-    await user.click(screen.getByRole('button', { name: /save settings/i }));
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to update settings'));
 
+    // Logo upload error
     uploadOrgLogoRequest.mockRejectedValueOnce({});
+    await user.click(screen.getByRole('button', { name: /change logo/i }));
     await user.upload(fileInput, file);
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to upload logo'));
-
-    updateOrgSettings.mockImplementationOnce(() => async () => ({
-      type: updateOrgSettings.rejected.type,
-      payload: undefined,
-      meta: { requestStatus: 'rejected' },
-      error: { message: 'Rejected' },
-    }));
-    await user.click(screen.getByRole('button', { name: /save settings/i }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to save'));
-
-    uploadOrgLogo.mockImplementationOnce(() => async () => ({
-      type: uploadOrgLogo.rejected.type,
-      payload: undefined,
-      meta: { requestStatus: 'rejected' },
-      error: { message: 'Rejected' },
-    }));
-    await user.upload(fileInput, file);
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Logo upload failed'));
   });
 
-  it('shows loading, logo placeholder, broken logo, and empty city null', async () => {
+  it('shows loading and switches to Upload logo when logo is broken', async () => {
     const user = userEvent.setup();
     getMyOrganizationRequest.mockResolvedValueOnce({
       data: {
         data: {
           organizationName: 'Bare',
-          city: '',
-          timezone: null,
-          workingHoursStart: null,
-          workingHoursEnd: null,
-          defaultCallDuration: null,
-          maxReschedules: null,
-          logoUrl: '/uploads/broken.png',
-          country: null,
-        },
-      },
-    });
-    updateOrgSettingsRequest.mockResolvedValueOnce({
-      data: {
-        data: {
-          organizationName: 'Bare',
-          city: null,
+          organizationEmail: 'admin@bare.com',
+          industry: 'IT',
+          companySize: '1 - 10',
+          website: null,
+          phone: '+1 111 222 3333',
           timezone: 'UTC',
           workingHoursStart: '09:00',
           workingHoursEnd: '18:00',
-          defaultCallDuration: 30,
-          maxReschedules: 3,
-          logoUrl: null,
+          workingDays: [],
+          logoUrl: '/uploads/broken.png',
           country: null,
+          settings: { displayName: '' },
         },
       },
     });
 
     renderWithProviders(<OrgSettingsForm />);
     expect(screen.getByText(/loading settings/i)).toBeInTheDocument();
-
     await waitFor(() => expect(screen.getByDisplayValue('Bare')).toBeInTheDocument());
-    expect(screen.getByDisplayValue('—')).toBeInTheDocument();
 
     const img = screen.getByAltText(/organization logo/i);
     fireEvent.error(img);
+
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /upload logo/i })).toBeInTheDocument()
     );
 
-    await user.click(screen.getByRole('button', { name: /save settings/i }));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Settings saved'));
-    expect(updateOrgSettingsRequest).toHaveBeenCalledWith(
-      expect.objectContaining({ city: null })
-    );
-
-    const fileInput = document.querySelector('input[type="file"]');
-    fireEvent.change(fileInput, { target: { files: [] } });
+    // Component should not crash after logo error.
   });
 });
 

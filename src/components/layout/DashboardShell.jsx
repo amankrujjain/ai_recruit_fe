@@ -56,7 +56,7 @@ export function DashboardShell({ children }) {
   }, [dispatch, isAdmin]);
 
   return (
-    <div className="flex h-dvh max-h-dvh overflow-hidden bg-surface">
+    <div className="flex h-dvh max-h-dvh w-full overflow-hidden bg-surface">
       <aside className="hidden h-full w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
         <div className="flex shrink-0 items-center gap-2.5 px-6 py-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white shadow-md shadow-brand-600/30">
@@ -98,7 +98,7 @@ export function DashboardShell({ children }) {
         <div className="shrink-0">
           <TopBar />
         </div>
-        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-6">
           {children}
         </main>
       </div>
