@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Building2, ChevronDown, Crown, Zap } from 'lucide-react';
+// import { Building2, ChevronDown, Crown, Zap } from 'lucide-react';
+import { Building2, Crown, Zap } from 'lucide-react';
 import { selectAuth } from '@/store/slices/authSlice';
 import { fetchMyOrganization, fetchBilling, selectAdminOrg } from '@/store/slices/adminOrgSlice';
 import { SidebarNav } from '@/components/layout/SidebarNav';
@@ -75,7 +76,7 @@ export function DashboardShell({ children }) {
               <span className="min-w-0 flex-1 truncate">
                 {organization?.organizationName || 'Your organization'}
               </span>
-              <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
+              {/* <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> */}
             </button>
           </div>
         )}

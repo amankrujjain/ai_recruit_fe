@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { FormSelect } from '@/components/ui/SelectMenu';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   fetchMyOrganization,
   updateOrgSettings,
@@ -278,6 +279,61 @@ function ToggleRow({ label, description, checked, onChange }) {
   );
 }
 
+function buildGeneralForm(organization) {
+  const settings = organization?.settings || {};
+  return {
+    organizationName: organization?.organizationName || '',
+    organizationEmail: organization?.organizationEmail || '',
+    industry: organization?.industry || '',
+    companySize: organization?.companySize || '',
+    countryName: organization?.country?.name || '',
+    website: organization?.website || '',
+    phone: organization?.phone || '',
+    timezone: organization?.timezone || 'UTC',
+    workingHoursStart: organization?.workingHoursStart || '09:00',
+    workingHoursEnd: organization?.workingHoursEnd || '18:00',
+    workingDays: Array.isArray(organization?.workingDays) ? [...organization.workingDays] : [],
+    organizationDisplayName: settings.displayName || '',
+  };
+}
+
+function buildAiForm(organization) {
+  const settings = organization?.settings || {};
+  return {
+    followUpEnabled: settings.followUpEnabled ?? true,
+    interviewLanguage: settings.interviewLanguage === 'en' ? 'English' : (settings.interviewLanguage || 'English'),
+    interviewStyle: titleCase(settings.interviewStyle, 'Balanced'),
+    questionDifficulty: titleCase(settings.questionDifficulty, 'Medium'),
+    realtimeTranscription: settings.realtimeTranscription ?? true,
+    silenceTimeoutSec: settings.silenceTimeoutSec ?? 10,
+    useJobDescription: settings.useJobDescription ?? true,
+    useResume: settings.useResume ?? false,
+    useCompanyInfo: settings.useCompanyInfo ?? false,
+    useCustomDocs: settings.useCustomDocs ?? false,
+    allowInternetKnowledge: settings.allowInternetKnowledge ?? true,
+    maxSources: settings.maxSources ?? 5,
+    scoringMode: settings.scoringMode || 'default',
+    scoreTechnical: settings.scoreTechnical ?? 40,
+    scoreCommunication: settings.scoreCommunication ?? 20,
+    scoreProblemSolving: settings.scoreProblemSolving ?? 20,
+    scoreExperience: settings.scoreExperience ?? 10,
+    scoreOthers: settings.scoreOthers ?? 10,
+    useConversationalMemory: settings.useConversationalMemory ?? true,
+    maintainContext: settings.maintainContext ?? true,
+    adaptQuestions: settings.adaptQuestions ?? true,
+    beConcise: settings.beConcise ?? false,
+    encourageDetailedAnswers: settings.encourageDetailedAnswers ?? true,
+    voiceId: settings.voiceId || '',
+  };
+}
+
+function normalizeGeneralForm(form) {
+  return {
+    ...form,
+    workingDays: [...(form.workingDays || [])].sort(),
+  };
+}
+
 export function OrgSettingsForm() {
   const dispatch = useDispatch();
   const { organization, billing, saving, logoUploading, voices, voicesLoading } = useSelector(selectAdminOrg);
@@ -285,6 +341,7 @@ export function OrgSettingsForm() {
   const [generalForm, setGeneralForm] = useState(null);
   const [aiForm, setAiForm] = useState(null);
   const [logoBroken, setLogoBroken] = useState(false);
+  const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
   const logoInputRef = useRef(null);
 
   useEffect(() => {
@@ -293,49 +350,8 @@ export function OrgSettingsForm() {
 
   useEffect(() => {
     if (!organization) return;
-
-    const settings = organization.settings || {};
-    setGeneralForm({
-      organizationName: organization.organizationName || '',
-      organizationEmail: organization.organizationEmail || '',
-      industry: organization.industry || '',
-      companySize: organization.companySize || '',
-      countryName: organization.country?.name || '',
-      website: organization.website || '',
-      phone: organization.phone || '',
-      timezone: organization.timezone || 'UTC',
-      workingHoursStart: organization.workingHoursStart || '09:00',
-      workingHoursEnd: organization.workingHoursEnd || '18:00',
-      workingDays: Array.isArray(organization.workingDays) ? organization.workingDays : [],
-      organizationDisplayName: settings.displayName || '',
-    });
-
-    setAiForm({
-      followUpEnabled: settings.followUpEnabled ?? true,
-      interviewLanguage: settings.interviewLanguage === 'en' ? 'English' : (settings.interviewLanguage || 'English'),
-      interviewStyle: titleCase(settings.interviewStyle, 'Balanced'),
-      questionDifficulty: titleCase(settings.questionDifficulty, 'Medium'),
-      realtimeTranscription: settings.realtimeTranscription ?? true,
-      silenceTimeoutSec: settings.silenceTimeoutSec ?? 10,
-      useJobDescription: settings.useJobDescription ?? true,
-      useResume: settings.useResume ?? false,
-      useCompanyInfo: settings.useCompanyInfo ?? false,
-      useCustomDocs: settings.useCustomDocs ?? false,
-      allowInternetKnowledge: settings.allowInternetKnowledge ?? true,
-      maxSources: settings.maxSources ?? 5,
-      scoringMode: settings.scoringMode || 'default',
-      scoreTechnical: settings.scoreTechnical ?? 40,
-      scoreCommunication: settings.scoreCommunication ?? 20,
-      scoreProblemSolving: settings.scoreProblemSolving ?? 20,
-      scoreExperience: settings.scoreExperience ?? 10,
-      scoreOthers: settings.scoreOthers ?? 10,
-      useConversationalMemory: settings.useConversationalMemory ?? true,
-      maintainContext: settings.maintainContext ?? true,
-      adaptQuestions: settings.adaptQuestions ?? true,
-      beConcise: settings.beConcise ?? false,
-      encourageDetailedAnswers: settings.encourageDetailedAnswers ?? true,
-      voiceId: settings.voiceId || '',
-    });
+    setGeneralForm(buildGeneralForm(organization));
+    setAiForm(buildAiForm(organization));
   }, [organization]);
 
   useEffect(() => {
@@ -365,6 +381,36 @@ export function OrgSettingsForm() {
     if (current && !COMPANY_SIZES.includes(current)) return [current, ...COMPANY_SIZES];
     return COMPANY_SIZES;
   }, [generalForm?.companySize]);
+
+  const isDirty = useMemo(() => {
+    if (!organization || !generalForm || !aiForm) return false;
+    const savedGeneral = normalizeGeneralForm(buildGeneralForm(organization));
+    const currentGeneral = normalizeGeneralForm(generalForm);
+    const savedAi = buildAiForm(organization);
+    return (
+      JSON.stringify(currentGeneral) !== JSON.stringify(savedGeneral) ||
+      JSON.stringify(aiForm) !== JSON.stringify(savedAi)
+    );
+  }, [organization, generalForm, aiForm]);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (!isDirty || reloadConfirmOpen) return;
+
+      const isRefreshKey =
+        event.key === 'F5' ||
+        ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'r');
+
+      if (!isRefreshKey) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setReloadConfirmOpen(true);
+    };
+
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [isDirty, reloadConfirmOpen]);
 
   if (!generalForm || !aiForm) {
     return <p className="text-sm text-muted">Loading settings...</p>;
@@ -611,11 +657,6 @@ export function OrgSettingsForm() {
                       options={timezoneOptions.map((zone) => ({ value: zone, label: zone }))}
                     />
                   </Field>
-                  <div className="md:col-span-2 pt-1">
-                    <Button type="submit" disabled={saving} className="h-10 rounded-lg px-5 text-sm">
-                      {saving ? 'Saving…' : 'Save Changes'}
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -687,6 +728,12 @@ export function OrgSettingsForm() {
                   </div>
                 </CardContent>
               </Card>
+
+              <div>
+                <Button type="submit" disabled={saving} className="h-10 rounded-lg px-5 text-sm">
+                  {saving ? 'Saving…' : 'Save Changes'}
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-5">
@@ -906,6 +953,10 @@ export function OrgSettingsForm() {
                   </div>
                 </CardContent>
               </Card>
+
+              <Button type="submit" disabled={saving} className="h-10 w-fit rounded-lg px-5 text-sm">
+                {saving ? 'Saving…' : 'Save Changes'}
+              </Button>
             </div>
 
             <div className="min-w-0 space-y-5">
@@ -1029,16 +1080,24 @@ export function OrgSettingsForm() {
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center">
-            <Button type="submit" disabled={saving} className="h-10 shrink-0 rounded-lg px-5 text-sm">
-              {saving ? 'Saving…' : 'Save Changes'}
-            </Button>
-            <HelpBanner />
-          </div>
+          <HelpBanner />
         </form>
       )}
 
       {activeTab === 'general' && <HelpBanner />}
+
+      <ConfirmDialog
+        open={reloadConfirmOpen}
+        title="Unsaved changes"
+        description="You have unsaved changes in Organization Settings. If you reload now, those changes will be lost."
+        confirmLabel="Reload"
+        cancelLabel="Cancel"
+        variant="danger"
+        onOpenChange={setReloadConfirmOpen}
+        onConfirm={() => {
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }
