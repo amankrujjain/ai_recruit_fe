@@ -43,6 +43,7 @@ export function CreateOrgForm({ onCreated }) {
         <h2 className="text-lg font-semibold">Register organization</h2>
         <p className="text-sm text-muted">
           Sends a verification link. The organization is created only after the admin activates.
+          General and AI settings are completed by the admin during onboarding.
         </p>
       </CardHeader>
       <CardContent>

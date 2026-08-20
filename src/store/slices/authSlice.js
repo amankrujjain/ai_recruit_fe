@@ -86,6 +86,14 @@ const authSlice = createSlice({
       state.error = null;
       clearStorage();
     },
+    setOnboardingCompleted: (state, action) => {
+      if (!state.account) return;
+      state.account = {
+        ...state.account,
+        onboardingCompleted: Boolean(action.payload),
+      };
+      localStorage.setItem(storageKeys.account, JSON.stringify(state.account));
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -125,6 +133,7 @@ export const {
   setInitialized,
   setTokens,
   clearSession,
+  setOnboardingCompleted,
 } = authSlice.actions;
 export const selectAuth = (state) => state.auth;
 export const selectIsAuthenticated = (state) => Boolean(state.auth.token);

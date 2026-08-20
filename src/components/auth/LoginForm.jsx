@@ -22,8 +22,8 @@ export function LoginForm() {
     const result = await dispatch(loginUser({ email, password }));
     if (loginUser.fulfilled.match(result)) {
       toast.success('Welcome back!');
-      const role = result.payload.account?.role;
-      navigate(getDashboardPath(role), { replace: true });
+      const account = result.payload.account;
+      navigate(getDashboardPath(account?.role, account), { replace: true });
     } else {
       toast.error(result.payload || 'Invalid credentials');
     }

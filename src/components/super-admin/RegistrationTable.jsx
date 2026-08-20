@@ -39,7 +39,7 @@ export function RegistrationTable({ items, loading }) {
             <thead>
               <tr className="border-b border-border text-muted">
                 <th className="pb-3 font-medium">Organization</th>
-                <th className="pb-3 font-medium">Admin</th>
+                <th className="pb-3 font-medium">POC / email</th>
                 <th className="pb-3 font-medium">Location</th>
                 <th className="pb-3 font-medium">Expires</th>
                 <th className="pb-3 font-medium">Actions</th>

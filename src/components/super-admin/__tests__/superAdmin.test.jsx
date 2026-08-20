@@ -67,9 +67,9 @@ describe('AdminInviteFields', () => {
     expect(onChange).toHaveBeenCalledWith('adminLastName');
     expect(onChange).toHaveBeenCalledWith('adminEmail');
 
-    await user.type(screen.getByLabelText(/admin first name/i), 'Jane');
-    await user.type(screen.getByLabelText(/admin last name/i), 'Smith');
-    await user.type(screen.getByLabelText(/admin email/i), 'a@b.com');
+    await user.type(screen.getByLabelText(/poc first name/i), 'Jane');
+    await user.type(screen.getByLabelText(/poc last name/i), 'Smith');
+    await user.type(screen.getByLabelText(/organization email/i), 'a@b.com');
 
     expect(handlers.adminFirstName).toHaveBeenCalled();
     expect(handlers.adminLastName).toHaveBeenCalled();
@@ -269,9 +269,9 @@ describe('CreateOrgForm', () => {
     await user.type(screen.getByLabelText(/organization name/i), 'Acme');
     await user.selectOptions(screen.getByLabelText(/country/i), 'c1');
     await user.type(screen.getByLabelText(/^city$/i), 'London');
-    await user.type(screen.getByLabelText(/admin first name/i), 'Jane');
-    await user.type(screen.getByLabelText(/admin last name/i), 'Smith');
-    await user.type(screen.getByLabelText(/admin email/i), 'admin@acme.com');
+    await user.type(screen.getByLabelText(/poc first name/i), 'Jane');
+    await user.type(screen.getByLabelText(/poc last name/i), 'Smith');
+    await user.type(screen.getByLabelText(/organization email/i), 'admin@acme.com');
     await user.click(screen.getByRole('button', { name: /send verification link/i }));
 
     await waitFor(() =>
@@ -298,9 +298,9 @@ describe('CreateOrgForm', () => {
     await user.type(screen.getByLabelText(/organization name/i), 'Acme');
     await user.selectOptions(screen.getByLabelText(/country/i), 'c1');
     await user.type(screen.getByLabelText(/^city$/i), 'London');
-    await user.type(screen.getByLabelText(/admin first name/i), 'Jane');
-    await user.type(screen.getByLabelText(/admin last name/i), 'Smith');
-    await user.type(screen.getByLabelText(/admin email/i), 'admin@acme.com');
+    await user.type(screen.getByLabelText(/poc first name/i), 'Jane');
+    await user.type(screen.getByLabelText(/poc last name/i), 'Smith');
+    await user.type(screen.getByLabelText(/organization email/i), 'admin@acme.com');
     await user.click(screen.getByRole('button', { name: /send verification link/i }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('email taken'));

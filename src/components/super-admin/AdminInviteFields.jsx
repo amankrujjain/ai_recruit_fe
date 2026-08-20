@@ -5,7 +5,7 @@ export function AdminInviteFields({ form, onChange }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-2">
-        <Label htmlFor="adminFirstName">Admin first name</Label>
+        <Label htmlFor="adminFirstName">POC first name</Label>
         <Input
           id="adminFirstName"
           value={form.adminFirstName}
@@ -15,7 +15,7 @@ export function AdminInviteFields({ form, onChange }) {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="adminLastName">Admin last name</Label>
+        <Label htmlFor="adminLastName">POC last name</Label>
         <Input
           id="adminLastName"
           value={form.adminLastName}
@@ -25,13 +25,13 @@ export function AdminInviteFields({ form, onChange }) {
         />
       </div>
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor="adminEmail">Admin email</Label>
+        <Label htmlFor="adminEmail">Organization email</Label>
         <Input
           id="adminEmail"
           type="email"
           value={form.adminEmail}
           onChange={onChange('adminEmail')}
-          placeholder="admin@company.com"
+          placeholder="hr@company.com"
           required
         />
       </div>

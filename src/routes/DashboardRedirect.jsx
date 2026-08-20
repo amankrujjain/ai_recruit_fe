@@ -5,5 +5,5 @@ import { getDashboardPath } from '@/lib/roles';
 
 export function DashboardRedirect() {
   const { account } = useSelector(selectAuth);
-  return <Navigate to={getDashboardPath(account?.role)} replace />;
+  return <Navigate to={getDashboardPath(account?.role, account)} replace />;
 }

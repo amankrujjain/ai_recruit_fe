@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {
   getMyOrganizationRequest,
+  completeOnboardingRequest,
   updateOrgSettingsRequest,
   updateAiPreferencesRequest,
   uploadOrgLogoRequest,
@@ -20,6 +21,18 @@ export const fetchMyOrganization = createAsyncThunk(
       return data.data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Failed to load organization');
+    }
+  }
+);
+
+export const completeOnboarding = createAsyncThunk(
+  'adminOrg/completeOnboarding',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { data } = await completeOnboardingRequest(payload);
+      return data.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to complete onboarding');
     }
   }
 );
@@ -160,6 +173,15 @@ const adminOrgSlice = createSlice({
       })
       .addCase(fetchMyOrganization.rejected, (s, a) => {
         s.loading = false;
+        s.error = a.payload;
+      })
+      .addCase(completeOnboarding.pending, (s) => { s.saving = true; })
+      .addCase(completeOnboarding.fulfilled, (s, a) => {
+        s.saving = false;
+        s.organization = a.payload;
+      })
+      .addCase(completeOnboarding.rejected, (s, a) => {
+        s.saving = false;
         s.error = a.payload;
       })
       .addCase(updateOrgSettings.pending, (s) => { s.saving = true; })
