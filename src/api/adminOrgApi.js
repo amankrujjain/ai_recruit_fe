@@ -3,6 +3,9 @@ import apiClient from './client';
 export const getMyOrganizationRequest = () =>
   apiClient.get('/organizations/me');
 
+export const completeOnboardingRequest = (payload) =>
+  apiClient.post('/organizations/me/onboarding', payload);
+
 export const updateOrgSettingsRequest = (payload) =>
   apiClient.patch('/organizations/me/settings', payload);
 

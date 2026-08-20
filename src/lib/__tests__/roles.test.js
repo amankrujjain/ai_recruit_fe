@@ -17,6 +17,18 @@ describe('roles', () => {
     expect(getDashboardPath('NOPE')).toBe('/login');
   });
 
+  it('getDashboardPath routes incomplete onboarding', () => {
+    expect(
+      getDashboardPath(Roles.ADMIN, { organizationId: 'o1', onboardingCompleted: false })
+    ).toBe('/admin/onboarding');
+    expect(
+      getDashboardPath(Roles.RECRUITER, { organizationId: 'o1', onboardingCompleted: false })
+    ).toBe('/setup-pending');
+    expect(
+      getDashboardPath(Roles.ADMIN, { organizationId: 'o1', onboardingCompleted: true })
+    ).toBe('/admin');
+  });
+
   it('isRole compares account.role', () => {
     expect(isRole({ role: Roles.ADMIN }, Roles.ADMIN)).toBe(true);
     expect(isRole(null, Roles.ADMIN)).toBe(false);

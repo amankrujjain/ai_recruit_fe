@@ -11,6 +11,10 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { PublicRoute } from '@/routes/PublicRoute';
 import { RoleRoute } from '@/routes/RoleRoute';
 import { DashboardRedirect } from '@/routes/DashboardRedirect';
+import {
+  RequireOnboardingComplete,
+  RequireOnboardingPending,
+} from '@/routes/OnboardingRoute';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { Roles } from '@/lib/roles';
 
@@ -46,6 +50,14 @@ const AdminRecruitersPage = lazyPage(
 const AdminSettingsPage = lazyPage(
   () => import('@/pages/admin/AdminSettingsPage'),
   'AdminSettingsPage'
+);
+const AdminOnboardingPage = lazyPage(
+  () => import('@/pages/admin/AdminOnboardingPage'),
+  'AdminOnboardingPage'
+);
+const SetupPendingPage = lazyPage(
+  () => import('@/pages/SetupPendingPage'),
+  'SetupPendingPage'
 );
 const AdminBillingPage = lazyPage(
   () => import('@/pages/admin/AdminBillingPage'),
@@ -120,26 +132,36 @@ export function AppRoutes() {
 </Route>
 
         <Route element={<RoleRoute allowedRoles={[Roles.ADMIN]} />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/admin" element={<AdminDashboardPage />} />
-            <Route path="/admin/recruiters" element={<AdminRecruitersPage />} />
-            <Route path="/admin/settings" element={<AdminSettingsPage />} />
-            <Route path="/admin/templates" element={<Navigate to="/admin" replace />} />
-            <Route path="/admin/billing" element={<AdminBillingPage />} />
-            <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
-            <Route path="/admin/support" element={<SupportCenterPage />} />
+          <Route element={<RequireOnboardingPending />}>
+            <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
+          </Route>
+          <Route element={<RequireOnboardingComplete />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/admin" element={<AdminDashboardPage />} />
+              <Route path="/admin/recruiters" element={<AdminRecruitersPage />} />
+              <Route path="/admin/settings" element={<AdminSettingsPage />} />
+              <Route path="/admin/templates" element={<Navigate to="/admin" replace />} />
+              <Route path="/admin/billing" element={<AdminBillingPage />} />
+              <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+              <Route path="/admin/support" element={<SupportCenterPage />} />
+            </Route>
           </Route>
         </Route>
 
         <Route element={<RoleRoute allowedRoles={[Roles.RECRUITER]} />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/recruiter" element={<RecruiterDashboardPage />} />
-            <Route path="/recruiter/jobs" element={<RecruiterJobsPage />} />
-            <Route path="/recruiter/jobs/new" element={<JobFormPage />} />
-            <Route path="/recruiter/jobs/:jobId/edit" element={<JobFormPage />} />
-            <Route path="/recruiter/jobs/:jobId" element={<JobDetailPage />} />
-            <Route path="/recruiter/templates" element={<RecruiterTemplatesPage />} />
-            <Route path="/recruiter/support" element={<SupportCenterPage />} />
+          <Route element={<RequireOnboardingPending />}>
+            <Route path="/setup-pending" element={<SetupPendingPage />} />
+          </Route>
+          <Route element={<RequireOnboardingComplete />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/recruiter" element={<RecruiterDashboardPage />} />
+              <Route path="/recruiter/jobs" element={<RecruiterJobsPage />} />
+              <Route path="/recruiter/jobs/new" element={<JobFormPage />} />
+              <Route path="/recruiter/jobs/:jobId/edit" element={<JobFormPage />} />
+              <Route path="/recruiter/jobs/:jobId" element={<JobDetailPage />} />
+              <Route path="/recruiter/templates" element={<RecruiterTemplatesPage />} />
+              <Route path="/recruiter/support" element={<SupportCenterPage />} />
+            </Route>
           </Route>
         </Route>
       </Route>

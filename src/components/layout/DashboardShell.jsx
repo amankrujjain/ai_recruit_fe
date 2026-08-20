@@ -50,11 +50,12 @@ export function DashboardShell({ children }) {
   const isAdmin = account?.role === Roles.ADMIN;
 
   useEffect(() => {
-    if (isAdmin) {
-      dispatch(fetchMyOrganization());
+    if (!isAdmin) return;
+    dispatch(fetchMyOrganization());
+    if (account?.onboardingCompleted !== false) {
       dispatch(fetchBilling());
     }
-  }, [dispatch, isAdmin]);
+  }, [dispatch, isAdmin, account?.onboardingCompleted]);
 
   return (
     <div className="flex h-dvh max-h-dvh w-full overflow-hidden bg-surface">

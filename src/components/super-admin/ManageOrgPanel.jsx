@@ -101,13 +101,21 @@ export function ManageOrgPanel({ organizationId, onDeleted }) {
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="manage-name">Organization name</Label>
-            {/* <Input id="manage-name" value={form.organizationName} onChange={onChange('organizationName')} required /> */}
             <Input 
-  id="manage-name" 
-  value={form.organizationName} 
-  readOnly 
-  required 
-/>
+              id="manage-name" 
+              value={form.organizationName} 
+              readOnly 
+              required 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="manage-org-email">Organization email</Label>
+            <Input
+              id="manage-org-email"
+              type="email"
+              value={selected.organizationEmail || ''}
+              readOnly
+            />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">

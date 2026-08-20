@@ -8,7 +8,7 @@ export function RoleRoute({ allowedRoles }) {
   const role = account?.role;
 
   if (!role || !allowedRoles.includes(role)) {
-    return <Navigate to={getDashboardPath(role)} replace />;
+    return <Navigate to={getDashboardPath(role, account)} replace />;
   }
 
   return <Outlet />;

@@ -14,7 +14,7 @@ import { fetchRegistrations, selectRegistrations } from '@/store/slices/registra
 const SORT_OPTIONS = [
   { value: 'createdAt', label: 'Created date' },
   { value: 'organizationName', label: 'Name' },
-  { value: 'adminEmail', label: 'Admin email' },
+  { value: 'adminEmail', label: 'Organization email' },
 ];
 
 export function PreRegisteredPage() {

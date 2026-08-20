@@ -20,7 +20,15 @@ export const getRoleLabel = (role) => {
   return roleLabels[name] || String(name).replaceAll('_', ' ');
 };
 
-export const getDashboardPath = (role) => {
+export const getDashboardPath = (role, account) => {
+  if (
+    account?.organizationId &&
+    account?.onboardingCompleted === false
+  ) {
+    if (role === Roles.ADMIN) return '/admin/onboarding';
+    if (role === Roles.RECRUITER) return '/setup-pending';
+  }
+
   const paths = {
     [Roles.SUPER_ADMIN]: '/super-admin/registrations',
     [Roles.ADMIN]: '/admin',

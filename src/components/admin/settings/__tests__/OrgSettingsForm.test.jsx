@@ -57,7 +57,6 @@ import {
 const baseOrg = {
   organizationId: 'org-1',
   organizationName: 'Acme Corp',
-  organizationEmail: 'admin@acme.com',
   industry: 'Information Technology',
   companySize: '201 - 500',
   website: 'https://acme.com',
@@ -171,7 +170,6 @@ describe('OrgSettingsForm', () => {
     expect(updateOrgSettings).toHaveBeenCalledWith(
       expect.objectContaining({
         displayName: 'HireMe Brand',
-        organizationEmail: 'admin@acme.com',
         industry: 'Information Technology',
         companySize: '201 - 500',
         website: 'https://acme.com',

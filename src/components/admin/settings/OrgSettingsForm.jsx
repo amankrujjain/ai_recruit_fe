@@ -283,7 +283,6 @@ function buildGeneralForm(organization) {
   const settings = organization?.settings || {};
   return {
     organizationName: organization?.organizationName || '',
-    organizationEmail: organization?.organizationEmail || '',
     industry: organization?.industry || '',
     companySize: organization?.companySize || '',
     countryName: organization?.country?.name || '',
@@ -494,7 +493,6 @@ export function OrgSettingsForm() {
     e.preventDefault();
     const payload = {
       displayName: generalForm.organizationDisplayName,
-      organizationEmail: generalForm.organizationEmail,
       industry: generalForm.industry,
       companySize: generalForm.companySize,
       website: generalForm.website || null,
@@ -597,17 +595,6 @@ export function OrgSettingsForm() {
                 <CardContent className="grid gap-x-5 gap-y-4 px-6 pb-6 pt-0 md:grid-cols-2">
                   <Field label="Organization Name" required>
                     <Input value={generalForm.organizationName} readOnly required className={inputClass} />
-                  </Field>
-                  <Field
-                    label="Organization Email"
-                    required
-                    hint="This email will be used for important notifications."
-                  >
-                    <Input
-                      value={generalForm.organizationEmail}
-                      onChange={onGeneralChange('organizationEmail')}
-                      className={inputClass}
-                    />
                   </Field>
                   <Field label="Industry">
                     <FormSelect
