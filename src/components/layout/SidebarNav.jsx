@@ -25,7 +25,6 @@ const navByRole = {
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/admin/recruiters', label: 'HR Team', icon: Users },
     { to: '/admin/settings', label: 'Organization Settings', icon: Settings2 },
-    { to: '/admin/templates', label: 'Templates', icon: FileText },
     { to: '/admin/billing', label: 'Billing', icon: CreditCard },
     { to: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
     { to: '/admin/support', label: 'Support', icon: LifeBuoy },

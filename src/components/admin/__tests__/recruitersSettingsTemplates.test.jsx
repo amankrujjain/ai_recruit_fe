@@ -307,22 +307,8 @@ describe('InviteRecruiterModal', () => {
 });
 
 describe('RecruiterInviteBanner', () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it('returns null without invitation', () => {
-    renderWithProviders(<RecruiterInviteBanner />);
-    expect(screen.queryByText(/recruiter invited/i)).toBeNull();
-  });
-
-  it('copies invite link and clears banner', async () => {
-    const user = userEvent.setup();
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText },
-    });
-
-    const { store } = renderWithProviders(<RecruiterInviteBanner />, {
+  it('never renders invite links in the UI', () => {
+    renderWithProviders(<RecruiterInviteBanner />, {
       preloadedState: {
         recruiters: {
           items: [],
@@ -340,17 +326,9 @@ describe('RecruiterInviteBanner', () => {
         },
       },
     });
-
-    expect(screen.getByText(/link sent to new@x.com/i)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /copy link/i }));
-    expect(writeText).toHaveBeenCalledWith('https://app/invite/abc');
-    expect(toast.success).toHaveBeenCalledWith('Invite link copied');
-
-    const dismiss = screen
-      .getAllByRole('button')
-      .find((btn) => !/copy link/i.test(btn.textContent || ''));
-    await user.click(dismiss);
-    await waitFor(() => expect(store.getState().recruiters.lastInvited).toBeNull());
+    expect(screen.queryByText(/recruiter invited/i)).toBeNull();
+    expect(screen.queryByText(/invite\/abc/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /copy link/i })).toBeNull();
   });
 });
 

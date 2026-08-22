@@ -16,7 +16,7 @@ export function SetupPendingPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
+    <div className="flex h-full flex-col overflow-y-auto bg-surface">
       <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">

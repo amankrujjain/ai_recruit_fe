@@ -510,6 +510,12 @@ export function OrgSettingsForm() {
 
   const handleAiSubmit = async (e) => {
     e.preventDefault();
+
+    if (aiForm.scoringMode === 'custom' && scoringTotal !== 100) {
+      toast.error('Score must be 100%');
+      return;
+    }
+
     const payload = {
       followUpEnabled: aiForm.followUpEnabled,
       interviewLanguage: aiForm.interviewLanguage,
@@ -941,7 +947,11 @@ export function OrgSettingsForm() {
                 </CardContent>
               </Card>
 
-              <Button type="submit" disabled={saving} className="h-10 w-fit rounded-lg px-5 text-sm">
+              <Button
+                type="submit"
+                disabled={saving || (aiForm.scoringMode === 'custom' && scoringTotal !== 100)}
+                className="h-10 w-fit rounded-lg px-5 text-sm"
+              >
                 {saving ? 'Saving…' : 'Save Changes'}
               </Button>
             </div>
@@ -991,6 +1001,11 @@ export function OrgSettingsForm() {
                       {scoringTotal}%
                     </span>
                   </div>
+                  {aiForm.scoringMode === 'custom' && scoringTotal !== 100 ? (
+                    <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                      Score must be 100%
+                    </p>
+                  ) : null}
                 </CardContent>
               </Card>
 

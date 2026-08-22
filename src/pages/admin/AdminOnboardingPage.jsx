@@ -121,8 +121,8 @@ export function AdminOnboardingPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-surface">
-      <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
+    <div className="flex h-full flex-col overflow-y-auto bg-surface">
+      <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-border bg-card px-6 py-4">
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white shadow-md shadow-brand-600/30">
             <Zap className="h-5 w-5" />
@@ -138,7 +138,7 @@ export function AdminOnboardingPage() {
         </Button>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Complete organization onboarding

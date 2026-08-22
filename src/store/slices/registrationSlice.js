@@ -70,7 +70,14 @@ const registrationSlice = createSlice({
       .addCase(createRegistration.pending, (s) => { s.creating = true; })
       .addCase(createRegistration.fulfilled, (s, a) => {
         s.creating = false;
-        s.lastCreated = a.payload;
+        // Do not keep invite URLs in client state (email-only delivery)
+        const { invitation, ...rest } = a.payload || {};
+        if (invitation) {
+          const { inviteUrl: _omit, ...safeInvitation } = invitation;
+          s.lastCreated = { ...rest, invitation: safeInvitation };
+        } else {
+          s.lastCreated = a.payload;
+        }
       })
       .addCase(createRegistration.rejected, (s, a) => {
         s.creating = false;

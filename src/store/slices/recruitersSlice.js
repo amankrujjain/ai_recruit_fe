@@ -109,7 +109,15 @@ const recruitersSlice = createSlice({
       .addCase(inviteRecruiter.pending, (s) => { s.inviting = true; })
       .addCase(inviteRecruiter.fulfilled, (s, a) => {
         s.inviting = false;
-        s.lastInvited = a.payload;
+        // Do not keep invite URLs in client state (email-only delivery)
+        const payload = a.payload || {};
+        if (payload.invitation) {
+          const { inviteUrl: _omit, ...safeInvitation } = payload.invitation;
+          s.lastInvited = { ...payload, invitation: safeInvitation };
+        } else {
+          const { inviteUrl: _omitUrl, ...safe } = payload;
+          s.lastInvited = safe;
+        }
       })
       .addCase(inviteRecruiter.rejected, (s, a) => {
         s.inviting = false;

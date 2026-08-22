@@ -91,10 +91,6 @@ vi.mock('@/components/admin/recruiters/InviteHrCta', () => ({
   ),
 }));
 
-vi.mock('@/components/admin/recruiters/RecruiterInviteBanner', () => ({
-  RecruiterInviteBanner: () => <div data-testid="recruiter-banner">RecruiterInviteBanner</div>,
-}));
-
 vi.mock('@/components/admin/audit/AuditLogTable', () => ({
   AuditLogTable: ({ items, loading }) => (
     <div data-testid="audit-log-table">
@@ -208,7 +204,7 @@ describe('AdminRecruitersPage', () => {
     await waitFor(() => expect(screen.getByText('HR Team')).toBeInTheDocument());
     expect(listRecruitersRequest).toHaveBeenCalled();
     expect(screen.getByTestId('recruiter-table')).toHaveTextContent('count=2');
-    expect(screen.getByTestId('recruiter-banner')).toBeInTheDocument();
+    expect(screen.queryByTestId('recruiter-banner')).toBeNull();
     expect(screen.getByTestId('invite-hr-cta')).toBeInTheDocument();
   });
 

@@ -92,10 +92,16 @@ describe('auditLog', () => {
           action: 'SETTINGS_UPDATED',
           metadata: { updatedFields: ['timezone', 'logo'] },
         })
-      ).toBe('Updated timezone, logo');
+      ).toBe('Organization settings updated');
       expect(composeAuditDetails({ action: 'SETTINGS_UPDATED', metadata: {} })).toBe(
         'Organization settings updated'
       );
+      expect(
+        composeAuditDetails({
+          action: 'ONBOARDING_COMPLETED',
+          metadata: { updatedFields: ['phone', 'timezone'] },
+        })
+      ).toBe('Onboarding completed');
       expect(composeAuditDetails({ action: 'LOGIN_SUCCESS' })).toBe('Signed in successfully');
       expect(
         composeAuditDetails({ action: 'LOGIN_FAILED', metadata: { reason: 'BAD_PASSWORD' } })
@@ -122,9 +128,15 @@ describe('auditLog', () => {
       expect(
         composeAuditDetails({
           action: 'CUSTOM',
-          metadata: { a: 1, b: null, c: '', d: { nested: true }, e: 'keep', f: 'drop' },
+          metadata: { updatedFields: ['a'], a: 1, b: null, c: '', d: { nested: true }, e: 'keep', f: 'drop' },
         })
       ).toBe('a: 1 · d: {"nested":true} · e: keep');
+      expect(
+        composeAuditDetails({
+          action: 'CUSTOM',
+          metadata: { updatedFields: ['phone', 'timezone'] },
+        })
+      ).toBe('—');
     });
   });
 
