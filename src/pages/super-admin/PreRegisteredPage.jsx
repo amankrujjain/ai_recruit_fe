@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { usePageTitle } from '@/context/PageTitleContext';
 import { CreateOrgForm } from '@/components/super-admin/CreateOrgForm';
-import { VerificationSuccessBanner } from '@/components/super-admin/VerificationSuccessBanner';
 import { RegistrationTable } from '@/components/super-admin/RegistrationTable';
 import { ListToolbar } from '@/components/super-admin/ListToolbar';
 import { PaginationBar } from '@/components/super-admin/PaginationBar';
@@ -44,7 +43,6 @@ export function PreRegisteredPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <VerificationSuccessBanner />
       <CreateOrgForm onCreated={load} />
       <ListToolbar
         search={search}

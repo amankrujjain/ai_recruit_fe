@@ -104,10 +104,9 @@ export function composeAuditDetails(log) {
     case 'USER_DELETED':
       return meta.email ? `Deleted ${meta.email}` : 'User deleted';
     case 'SETTINGS_UPDATED':
-      if (Array.isArray(meta.updatedFields) && meta.updatedFields.length) {
-        return `Updated ${meta.updatedFields.join(', ')}`;
-      }
       return 'Organization settings updated';
+    case 'ONBOARDING_COMPLETED':
+      return 'Onboarding completed';
     case 'LOGIN_SUCCESS':
       return 'Signed in successfully';
     case 'LOGIN_FAILED':
@@ -132,7 +131,10 @@ export function composeAuditDetails(log) {
       break;
   }
 
-  const keys = Object.keys(meta).filter((k) => meta[k] != null && meta[k] !== '');
+  // updatedFields are shown in the metadata JSON — skip duplicating them here
+  const keys = Object.keys(meta).filter(
+    (k) => k !== 'updatedFields' && meta[k] != null && meta[k] !== ''
+  );
   if (keys.length === 0) return '—';
   return keys
     .slice(0, 3)

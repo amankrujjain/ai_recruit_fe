@@ -575,34 +575,8 @@ describe('RegistrationTable', () => {
 });
 
 describe('VerificationSuccessBanner', () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it('returns null without invitation', () => {
+  it('never renders invite links in the UI', () => {
     const { container } = renderWithProviders(<VerificationSuccessBanner />, {
-      preloadedState: {
-        registrations: {
-          items: [],
-          pagination: null,
-          loading: false,
-          creating: false,
-          resendingId: null,
-          lastCreated: { registration: { organizationName: 'Acme' } },
-          error: null,
-        },
-      },
-    });
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('copies link and clears banner', async () => {
-    const user = userEvent.setup();
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText },
-    });
-
-    const { store } = renderWithProviders(<VerificationSuccessBanner />, {
       preloadedState: {
         registrations: {
           items: [],
@@ -621,45 +595,8 @@ describe('VerificationSuccessBanner', () => {
         },
       },
     });
-
-    expect(screen.getByText(/acme — pending verification/i)).toBeInTheDocument();
-    expect(screen.getByText(/link sent to admin@acme.com/i)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /copy link/i }));
-    expect(writeText).toHaveBeenCalledWith('https://app.test/verify/abc');
-    expect(toast.success).toHaveBeenCalledWith('Verification link copied');
-
-    const buttons = screen.getAllByRole('button');
-    await user.click(buttons[buttons.length - 1]);
-    expect(store.getState().registrations.lastCreated).toBeNull();
-  });
-
-  it('handles missing inviteUrl', async () => {
-    const user = userEvent.setup();
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText },
-    });
-
-    renderWithProviders(<VerificationSuccessBanner />, {
-      preloadedState: {
-        registrations: {
-          items: [],
-          pagination: null,
-          loading: false,
-          creating: false,
-          resendingId: null,
-          lastCreated: {
-            registration: { organizationName: 'Acme' },
-            invitation: { email: 'a@b.com' },
-          },
-          error: null,
-        },
-      },
-    });
-
-    await user.click(screen.getByRole('button', { name: /copy link/i }));
-    expect(writeText).toHaveBeenCalledWith('');
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText(/verify\/abc/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /copy link/i })).toBeNull();
   });
 });
