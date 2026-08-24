@@ -60,7 +60,7 @@ export function DashboardShell({ children }) {
   return (
     <div className="flex h-dvh max-h-dvh w-full overflow-hidden bg-surface">
       <aside className="hidden h-full w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
-        <div className="flex shrink-0 items-center gap-2.5 px-6 py-5">
+        <div className="flex shrink-0 items-center gap-2.5 px-4 py-5">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white shadow-md shadow-brand-600/30">
             <Zap className="h-5 w-5" />
           </span>
@@ -68,10 +68,10 @@ export function DashboardShell({ children }) {
         </div>
 
         {isAdmin && (
-          <div className="shrink-0 px-4 pb-2">
+          <div className="shrink-0 px-4 pb-4">
             <button
               type="button"
-              className="flex w-full items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-brand-50"
+              className="flex w-full items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-brand-50"
             >
               <Building2 className="h-4 w-4 shrink-0 text-brand-500" />
               <span className="min-w-0 flex-1 truncate">

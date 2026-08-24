@@ -39,6 +39,10 @@ const SupportCategoriesPage = lazyPage(
   () => import('@/pages/super-admin/SupportCategoriesPage'),
   'SupportCategoriesPage'
 );
+const AiModelsPage = lazyPage(
+  () => import('@/pages/super-admin/AiModelsPage'),
+  'AiModelsPage'
+);
 const AdminDashboardPage = lazyPage(
   () => import('@/pages/admin/AdminDashboardPage'),
   'AdminDashboardPage'
@@ -125,6 +129,8 @@ export function AppRoutes() {
     <Route path="/super-admin/organizations" element={<AllOrganizationsPage />} />
 
     <Route path="/super-admin/manage" element={<ManageOrganizationPage />} />
+
+    <Route path="/super-admin/ai-models" element={<AiModelsPage />} />
 
     <Route path="/super-admin/support" element={<SupportCategoriesPage />} />
 

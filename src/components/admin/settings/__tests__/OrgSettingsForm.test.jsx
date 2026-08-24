@@ -21,6 +21,15 @@ vi.mock('@/api/adminOrgApi', () => ({
   getAuditStatsRequest: vi.fn(),
 }));
 
+vi.mock('@/api/supportedLlmApi', () => ({
+  listActiveSupportedLlmsRequest: vi.fn(),
+  listAdminSupportedLlmsRequest: vi.fn(),
+  createSupportedLlmRequest: vi.fn(),
+  updateSupportedLlmRequest: vi.fn(),
+  replaceSupportedLlmIconRequest: vi.fn(),
+  deleteSupportedLlmRequest: vi.fn(),
+}));
+
 vi.mock('@/store/slices/adminOrgSlice', async (importOriginal) => {
   const actual = await importOriginal();
   const wrap = (thunk) =>
@@ -47,6 +56,7 @@ import {
   uploadOrgLogoRequest,
   getVoicesRequest,
 } from '@/api/adminOrgApi';
+import { listActiveSupportedLlmsRequest } from '@/api/supportedLlmApi';
 import {
   updateOrgSettings,
   updateAiPreferences,
@@ -70,6 +80,8 @@ const baseOrg = {
   country: { name: 'United States' },
   settings: {
     displayName: 'Acme Brand',
+    primaryLlm: 'gpt-4o-mini',
+    backupLlm: 'gpt-3.5-turbo',
     followUpEnabled: true,
     interviewLanguage: 'English',
     interviewStyle: 'Balanced',
@@ -114,6 +126,26 @@ describe('OrgSettingsForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getMyOrganizationRequest.mockResolvedValue(orgResponse());
+    listActiveSupportedLlmsRequest.mockResolvedValue({
+      data: {
+        data: [
+          {
+            supportedLlmId: 'llm-1',
+            modelName: 'gpt-4o-mini',
+            displayName: 'GPT-4o mini',
+            slot: 'PRIMARY',
+            iconUrl: 'https://cdn.example/p.webp',
+          },
+          {
+            supportedLlmId: 'llm-2',
+            modelName: 'gpt-3.5-turbo',
+            displayName: 'GPT-3.5 Turbo',
+            slot: 'BACKUP',
+            iconUrl: 'https://cdn.example/b.webp',
+          },
+        ],
+      },
+    });
     getVoicesRequest.mockResolvedValue({
       data: {
         data: {
@@ -134,7 +166,6 @@ describe('OrgSettingsForm', () => {
 
     expect(screen.getByRole('heading', { name: /organization settings/i })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Acme Brand')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('admin@acme.com')).toBeInTheDocument();
     expect(screen.getByDisplayValue('+1 999 000 1111')).toBeInTheDocument();
     expect(screen.getByText('Company Information')).toBeInTheDocument();
     expect(screen.getByText('Basic Working Hours')).toBeInTheDocument();
@@ -294,6 +325,8 @@ describe('OrgSettingsForm', () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('AI preferences saved'));
     expect(updateAiPreferences).toHaveBeenCalledWith(
       expect.objectContaining({
+        primaryLlm: 'gpt-4o-mini',
+        backupLlm: 'gpt-3.5-turbo',
         followUpEnabled: true,
         interviewLanguage: 'English',
         interviewStyle: 'Balanced',

@@ -10,7 +10,7 @@ export function AdminSettingsPage() {
   useEffect(() => { dispatch(fetchCountries()); }, [dispatch]);
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-8xl space-y-6">
       <OrgSettingsForm />
     </div>
   );

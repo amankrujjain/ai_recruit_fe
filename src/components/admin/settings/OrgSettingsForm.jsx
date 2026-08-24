@@ -35,6 +35,10 @@ import {
   fetchVoices,
   selectAdminOrg,
 } from '@/store/slices/adminOrgSlice';
+import {
+  fetchActiveSupportedLlms,
+  selectSupportedLlms,
+} from '@/store/slices/supportedLlmSlice';
 import { resolveAssetUrl } from '@/lib/assetUrl';
 
 const DAYS = [
@@ -80,8 +84,6 @@ const TIMEZONES = [
   'America/Los_Angeles',
 ];
 
-const LLM_PRIMARY = { value: 'gpt-4o-mini', label: 'GPT-4o mini' };
-const LLM_SECONDARY = { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' };
 const DEFAULT_SCORES = {
   scoreTechnical: 40,
   scoreCommunication: 20,
@@ -299,6 +301,8 @@ function buildGeneralForm(organization) {
 function buildAiForm(organization) {
   const settings = organization?.settings || {};
   return {
+    primaryLlm: settings.primaryLlm || 'gpt-4o-mini',
+    backupLlm: settings.backupLlm || 'gpt-3.5-turbo',
     followUpEnabled: settings.followUpEnabled ?? true,
     interviewLanguage: settings.interviewLanguage === 'en' ? 'English' : (settings.interviewLanguage || 'English'),
     interviewStyle: titleCase(settings.interviewStyle, 'Balanced'),
@@ -336,6 +340,7 @@ function normalizeGeneralForm(form) {
 export function OrgSettingsForm() {
   const dispatch = useDispatch();
   const { organization, billing, saving, logoUploading, voices, voicesLoading } = useSelector(selectAdminOrg);
+  const { activeItems: supportedLlms } = useSelector(selectSupportedLlms);
   const [activeTab, setActiveTab] = useState('general');
   const [generalForm, setGeneralForm] = useState(null);
   const [aiForm, setAiForm] = useState(null);
@@ -359,9 +364,58 @@ export function OrgSettingsForm() {
 
   useEffect(() => {
     if (activeTab !== 'ai') return;
+    dispatch(fetchActiveSupportedLlms());
     if (Array.isArray(voices) && voices.length > 0) return;
     dispatch(fetchVoices());
   }, [activeTab, dispatch, voices]);
+
+  const primaryLlmOptions = useMemo(() => {
+    const items = (supportedLlms || []).filter(
+      (m) => m.slot === 'PRIMARY' || m.slot === 'BOTH'
+    );
+    const options = items.map((m) => ({
+      value: m.modelName,
+      label: m.displayName,
+      iconUrl: m.iconUrl,
+    }));
+    const current = aiForm?.primaryLlm;
+    if (current && !options.some((o) => o.value === current)) {
+      options.unshift({ value: current, label: current, iconUrl: null });
+    }
+    return options;
+  }, [supportedLlms, aiForm?.primaryLlm]);
+
+  const backupLlmOptions = useMemo(() => {
+    const items = (supportedLlms || []).filter(
+      (m) => m.slot === 'BACKUP' || m.slot === 'BOTH'
+    );
+    const options = items.map((m) => ({
+      value: m.modelName,
+      label: m.displayName,
+      iconUrl: m.iconUrl,
+    }));
+    const current = aiForm?.backupLlm;
+    if (current && !options.some((o) => o.value === current)) {
+      options.unshift({ value: current, label: current, iconUrl: null });
+    }
+    return options;
+  }, [supportedLlms, aiForm?.backupLlm]);
+
+  const selectedPrimary = primaryLlmOptions.find((o) => o.value === aiForm?.primaryLlm);
+  const selectedBackup = backupLlmOptions.find((o) => o.value === aiForm?.backupLlm);
+
+  const LlmLeading = ({ option }) => {
+    if (option?.iconUrl) {
+      return (
+        <img
+          src={resolveAssetUrl(option.iconUrl)}
+          alt=""
+          className="h-4 w-4 rounded object-cover"
+        />
+      );
+    }
+    return <Bot className="h-4 w-4 text-brand-500" />;
+  };
 
   const timezoneOptions = useMemo(() => {
     const current = generalForm?.timezone;
@@ -517,6 +571,8 @@ export function OrgSettingsForm() {
     }
 
     const payload = {
+      primaryLlm: aiForm.primaryLlm,
+      backupLlm: aiForm.backupLlm,
       followUpEnabled: aiForm.followUpEnabled,
       interviewLanguage: aiForm.interviewLanguage,
       interviewStyle: aiForm.interviewStyle,
@@ -813,18 +869,20 @@ export function OrgSettingsForm() {
                   <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                     <Field label="Primary LLM">
                       <FormSelect
-                        value={LLM_PRIMARY.value}
-                        options={[LLM_PRIMARY]}
-                        disabled
-                        leading={<Bot className="h-4 w-4 text-brand-500" />}
+                        value={aiForm.primaryLlm}
+                        onValueChange={(value) => setAiForm((s) => ({ ...s, primaryLlm: value }))}
+                        options={primaryLlmOptions}
+                        disabled={primaryLlmOptions.length <= 1}
+                        leading={<LlmLeading option={selectedPrimary} />}
                       />
                     </Field>
                     <Field label="Backup LLM">
                       <FormSelect
-                        value={LLM_SECONDARY.value}
-                        options={[LLM_SECONDARY]}
-                        disabled
-                        leading={<Sparkles className="h-4 w-4 text-brand-500" />}
+                        value={aiForm.backupLlm}
+                        onValueChange={(value) => setAiForm((s) => ({ ...s, backupLlm: value }))}
+                        options={backupLlmOptions}
+                        disabled={backupLlmOptions.length <= 1}
+                        leading={<LlmLeading option={selectedBackup} />}
                       />
                     </Field>
                   </div>
