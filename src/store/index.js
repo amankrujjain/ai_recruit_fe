@@ -10,6 +10,7 @@ import jobsReducer from './slices/jobsSlice';
 import candidatesReducer from './slices/candidatesSlice';
 import recruitmentReducer from './slices/recruitmentSlice';
 import supportReducer from './slices/supportSlice';
+import supportedLlmReducer from './slices/supportedLlmSlice';
 
 const store = configureStore({
   reducer: {
@@ -23,6 +24,7 @@ const store = configureStore({
     candidates: candidatesReducer,
     recruitment: recruitmentReducer,
     support: supportReducer,
+    supportedLlms: supportedLlmReducer,
   },
 });
 

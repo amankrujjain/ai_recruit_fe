@@ -78,6 +78,7 @@ describe('SidebarNav', () => {
     const { rerender } = renderWithProviders(<SidebarNav role={Roles.SUPER_ADMIN} />);
     expect(screen.getByRole('link', { name: /pre-registered/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /all organizations/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /ai models/i })).toBeInTheDocument();
 
     rerender(<SidebarNav role={Roles.ADMIN} />);
     expect(screen.getByRole('link', { name: /^dashboard$/i })).toHaveAttribute('href', '/admin');

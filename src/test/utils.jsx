@@ -12,6 +12,7 @@ import jobsReducer from '@/store/slices/jobsSlice';
 import candidatesReducer from '@/store/slices/candidatesSlice';
 import recruitmentReducer from '@/store/slices/recruitmentSlice';
 import supportReducer from '@/store/slices/supportSlice';
+import supportedLlmReducer from '@/store/slices/supportedLlmSlice';
 
 export const rootReducer = {
   auth: authReducer,
@@ -24,6 +25,7 @@ export const rootReducer = {
   candidates: candidatesReducer,
   recruitment: recruitmentReducer,
   support: supportReducer,
+  supportedLlms: supportedLlmReducer,
 };
 
 export const makeStore = (preloadedState) =>

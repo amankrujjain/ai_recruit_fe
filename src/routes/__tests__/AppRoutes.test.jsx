@@ -67,6 +67,9 @@ vi.mock('@/pages/super-admin/ManageOrganizationPage', () => ({
 vi.mock('@/pages/super-admin/SupportCategoriesPage', () => ({
   SupportCategoriesPage: () => <div>support-categories</div>,
 }));
+vi.mock('@/pages/super-admin/AiModelsPage', () => ({
+  AiModelsPage: () => <div>ai-models</div>,
+}));
 vi.mock('@/pages/admin/AdminDashboardPage', () => ({
   AdminDashboardPage: () => <div>admin-dashboard</div>,
 }));
@@ -156,6 +159,7 @@ describe('AppRoutes', () => {
     ['/super-admin/registrations', 'pre-registered', Roles.SUPER_ADMIN],
     ['/super-admin/organizations', 'all-orgs', Roles.SUPER_ADMIN],
     ['/super-admin/manage', 'manage-org', Roles.SUPER_ADMIN],
+    ['/super-admin/ai-models', 'ai-models', Roles.SUPER_ADMIN],
     ['/super-admin/support', 'support-categories', Roles.SUPER_ADMIN],
     ['/admin', 'admin-dashboard', Roles.ADMIN],
     ['/admin/recruiters', 'admin-recruiters', Roles.ADMIN],

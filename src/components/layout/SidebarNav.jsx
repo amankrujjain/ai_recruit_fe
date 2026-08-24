@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
+  Bot,
   Building2,
   Briefcase,
   ClipboardList,
@@ -19,13 +20,13 @@ const navByRole = {
   { to: '/super-admin/registrations', label: 'Pre-registered', icon: UserPlus },
   { to: '/super-admin/organizations', label: 'All organizations', icon: Building2 },
   { to: '/super-admin/manage', label: 'Manage', icon: Settings2 },
+  { to: '/super-admin/ai-models', label: 'AI Models', icon: Bot },
   { to: '/super-admin/support', label: 'Support & FAQ', icon: LifeBuoy },
 ],
   [Roles.ADMIN]: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/admin/recruiters', label: 'HR Team', icon: Users },
     { to: '/admin/settings', label: 'Organization Settings', icon: Settings2 },
-    { to: '/admin/templates', label: 'Templates', icon: FileText },
     { to: '/admin/billing', label: 'Billing', icon: CreditCard },
     { to: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
     { to: '/admin/support', label: 'Support', icon: LifeBuoy },
