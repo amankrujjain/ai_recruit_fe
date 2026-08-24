@@ -40,6 +40,7 @@ import {
   selectSupportedLlms,
 } from '@/store/slices/supportedLlmSlice';
 import { resolveAssetUrl } from '@/lib/assetUrl';
+import { isValidPhone, sanitizePhoneInput } from '@/lib/phone';
 
 const DAYS = [
   { key: 'mon', label: 'Monday', short: 'Mon' },
@@ -289,7 +290,7 @@ function buildGeneralForm(organization) {
     companySize: organization?.companySize || '',
     countryName: organization?.country?.name || '',
     website: organization?.website || '',
-    phone: organization?.phone || '',
+    phone: sanitizePhoneInput(organization?.phone),
     timezone: organization?.timezone || 'UTC',
     workingHoursStart: organization?.workingHoursStart || '09:00',
     workingHoursEnd: organization?.workingHoursEnd || '18:00',
@@ -497,8 +498,10 @@ export function OrgSettingsForm() {
       })
     : '—';
 
-  const onGeneralChange = (field) => (e) =>
-    setGeneralForm((s) => ({ ...s, [field]: e.target.value }));
+  const onGeneralChange = (field) => (e) => {
+    const value = field === 'phone' ? sanitizePhoneInput(e.target.value) : e.target.value;
+    setGeneralForm((s) => ({ ...s, [field]: value }));
+  };
 
   const setGeneralField = (field, value) => setGeneralForm((s) => ({ ...s, [field]: value }));
   const setAiField = (field, value) => setAiForm((s) => ({ ...s, [field]: value }));
@@ -545,6 +548,10 @@ export function OrgSettingsForm() {
 
   const handleGeneralSubmit = async (e) => {
     e.preventDefault();
+    if (!isValidPhone(generalForm.phone)) {
+      toast.error('Phone number must be exactly 10 digits');
+      return;
+    }
     const payload = {
       displayName: generalForm.organizationDisplayName,
       industry: generalForm.industry,
@@ -686,6 +693,12 @@ export function OrgSettingsForm() {
                   </Field>
                   <Field label="Phone Number" required>
                     <Input
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel"
+                      maxLength={10}
+                      pattern="\d{10}"
+                      title="Enter exactly 10 digits"
                       value={generalForm.phone}
                       onChange={onGeneralChange('phone')}
                       required
