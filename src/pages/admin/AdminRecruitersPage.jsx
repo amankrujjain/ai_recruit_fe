@@ -12,7 +12,6 @@ import { InviteRecruiterModal } from '@/components/admin/recruiters/InviteRecrui
 import { InviteHrCta } from '@/components/admin/recruiters/InviteHrCta';
 import { RecruiterTable } from '@/components/admin/recruiters/RecruiterTable';
 import { TablePagination } from '@/components/admin/recruiters/TablePagination';
-import { RecruiterInviteBanner } from '@/components/admin/recruiters/RecruiterInviteBanner';
 import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { usePageBootstrap } from '@/hooks/usePageBootstrap';
@@ -105,8 +104,6 @@ export function AdminRecruitersPage() {
           }
           onAction={() => setInviteOpen(true)}
         />
-
-        <RecruiterInviteBanner />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard

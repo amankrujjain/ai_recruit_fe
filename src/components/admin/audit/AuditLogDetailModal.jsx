@@ -5,7 +5,6 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { formatAuditIp } from '@/lib/formatAuditIp';
 import {
-  composeAuditDetails,
   formatAuditTime,
   getActionLabel,
   getModuleMeta,
@@ -117,10 +116,6 @@ export function AuditLogDetailModal({ open, onOpenChange, log }) {
             <div>
               <dt className="text-xs font-medium text-muted">IP Address</dt>
               <dd className="mt-0.5 font-mono text-xs text-foreground">{formatAuditIp(log) || '—'}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-xs font-medium text-muted">Details</dt>
-              <dd className="mt-0.5 text-foreground">{composeAuditDetails(log)}</dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-xs font-medium text-muted">User Agent</dt>

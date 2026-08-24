@@ -1,40 +1,7 @@
-import { useDispatch, useSelector } from 'react-redux';
-import { toast } from 'sonner';
-import { Copy, X } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { clearLastInvited, selectRecruiters } from '@/store/slices/recruitersSlice';
-
+/**
+ * Invite URLs must not be shown in the UI (email-only delivery).
+ * Kept as a no-op export so older imports/tests do not break.
+ */
 export function RecruiterInviteBanner() {
-  const dispatch = useDispatch();
-  const { lastInvited } = useSelector(selectRecruiters);
-
-  if (!lastInvited?.invitation) return null;
-
-  const { invitation } = lastInvited;
-
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(invitation.inviteUrl);
-    toast.success('Invite link copied');
-  };
-
-  return (
-    <div className="rounded-xl border border-accent-500/30 bg-emerald-50 p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-semibold text-emerald-800">Recruiter invited</p>
-          <p className="mt-1 text-sm text-emerald-700">Link sent to {invitation.email}</p>
-          <p className="mt-2 break-all text-xs text-emerald-600">{invitation.inviteUrl}</p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Button variant="outline" size="sm" onClick={copyLink}>
-            <Copy className="mr-1 h-3.5 w-3.5" />
-            Copy link
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => dispatch(clearLastInvited())}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 }
