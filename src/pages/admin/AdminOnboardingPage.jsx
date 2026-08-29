@@ -14,6 +14,7 @@ import {
   selectAdminOrg,
 } from '@/store/slices/adminOrgSlice';
 import { logoutUser, selectAuth, setOnboardingCompleted } from '@/store/slices/authSlice';
+import { isValidPhone, sanitizePhoneInput } from '@/lib/phone';
 
 const DAYS = [
   { key: 'mon', label: 'Mon' },
@@ -44,7 +45,7 @@ function buildForm(organization) {
   const settings = organization?.settings || {};
   return {
     displayName: settings.displayName || organization?.organizationName || '',
-    phone: organization?.phone || '',
+    phone: sanitizePhoneInput(organization?.phone),
     timezone: organization?.timezone || 'UTC',
     workingHoursStart: organization?.workingHoursStart || '09:00',
     workingHoursEnd: organization?.workingHoursEnd || '18:00',
@@ -75,7 +76,10 @@ export function AdminOnboardingPage() {
     return TIMEZONES;
   }, [form?.timezone]);
 
-  const onChange = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const onChange = (field) => (e) => {
+    const value = field === 'phone' ? sanitizePhoneInput(e.target.value) : e.target.value;
+    setForm((f) => ({ ...f, [field]: value }));
+  };
   const setField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
   const toggleWorkingDay = (dayKey) => {
@@ -97,6 +101,10 @@ export function AdminOnboardingPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isValidPhone(form.phone)) {
+      toast.error('Phone number must be exactly 10 digits');
+      return;
+    }
     if (!form.workingDays?.length) {
       toast.error('Select at least one working day');
       return;
@@ -187,6 +195,12 @@ export function AdminOnboardingPage() {
                   <Label htmlFor="onboarding-phone">Phone <span className="text-red-500">*</span></Label>
                   <Input
                     id="onboarding-phone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    maxLength={10}
+                    pattern="\d{10}"
+                    title="Enter exactly 10 digits"
                     value={form.phone}
                     onChange={onChange('phone')}
                     required
