@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
 import { usePageTitle } from '@/context/PageTitleContext';
@@ -8,14 +8,22 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PaginationBar } from '@/components/super-admin/PaginationBar';
 import { JobDetailHeader } from '@/components/recruiter/jobs/JobDetailHeader';
+import { JobOverviewTab } from '@/components/recruiter/jobs/JobOverviewTab';
 import { FileUploadZone } from '@/components/recruiter/candidates/FileUploadZone';
 import { CandidateTable } from '@/components/recruiter/candidates/CandidateTable';
-import { SelectCandidatesBar } from '@/components/recruiter/candidates/SelectCandidatesBar';
+import { CandidatesEligibilityBar } from '@/components/recruiter/candidates/CandidatesEligibilityBar';
+import { CandidatesToolbar } from '@/components/recruiter/candidates/CandidatesToolbar';
+import { CandidatesSelectionBar } from '@/components/recruiter/candidates/CandidatesSelectionBar';
 import { ResumeProcessingBanner } from '@/components/recruiter/candidates/ResumeProcessingBanner';
-import { InterviewScorecardDrawer } from '@/components/recruiter/candidates/InterviewScorecardDrawer';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { RankingMode } from '@/lib/rankingMode';
+import {
+  countEligible,
+  DEFAULT_ELIGIBILITY_THRESHOLD,
+  isCandidateEligible,
+  isCandidateSelectable,
+} from '@/lib/candidateEligibility';
 import { getResumeStatusRequest } from '@/api/jobApi';
 import {
   fetchJob,
@@ -32,10 +40,17 @@ import {
   clearCandidates,
   selectCandidatesState,
 } from '@/store/slices/candidatesSlice';
+import {
+  fetchDashboardStats,
+  selectRecruitment,
+} from '@/store/slices/recruitmentSlice';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'candidates', label: 'Candidates' },
+  { id: 'outreach', label: 'Outreach' },
+  { id: 'interviews', label: 'Interviews' },
+  { id: 'decisions', label: 'Decisions' },
 ];
 
 const STATUS_POLL_MS = 2000;
@@ -44,17 +59,20 @@ const MATCH_FOLLOWUP_MS = 5000;
 
 export function JobDetailPage() {
   const { jobId } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') || 'overview';
   const dispatch = useDispatch();
   const { current: job, detailLoading, saving } = useSelector(selectJobs);
   usePageTitle(job?.jobTitle || 'Job');
   const { items, pagination, loading, uploading, selecting, deletingId } = useSelector(selectCandidatesState);
+  const { stats } = useSelector(selectRecruitment);
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [eligibilityThreshold, setEligibilityThreshold] = useState(DEFAULT_ELIGIBILITY_THRESHOLD);
   const [parseProgress, setParseProgress] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
-  const [interviewDrawer, setInterviewDrawer] = useState(null);
+  const [invitingId, setInvitingId] = useState(null);
   const stopPollRef = useRef(null);
   const pageRef = useRef(page);
   pageRef.current = page;
@@ -178,6 +196,7 @@ export function JobDetailPage() {
 
   useEffect(() => {
     dispatch(fetchJob(jobId));
+    dispatch(fetchDashboardStats({ jobId }));
     return () => {
       stopPolling();
       dispatch(clearCurrentJob());
@@ -196,9 +215,9 @@ export function JobDetailPage() {
   const handleDeactivate = () => {
     setConfirmDialog({
       type: 'deactivate',
-      title: 'Deactivate this job?',
+      title: 'Close this job?',
       description: 'It will no longer accept new candidates. You can still view existing ones.',
-      confirmLabel: 'Deactivate',
+      confirmLabel: 'Close job',
       variant: 'danger',
     });
   };
@@ -216,10 +235,7 @@ export function JobDetailPage() {
   };
 
   const handleViewInterview = (row) => {
-    setInterviewDrawer({
-      candidateJobId: row.candidateJobId,
-      candidateName: row.candidate?.name || 'Candidate',
-    });
+    navigate(`/recruiter/jobs/${jobId}/candidates/${row.candidateJobId}`);
   };
 
   const handleConfirm = async () => {
@@ -295,28 +311,49 @@ const handleActivate = () => {
   //   } else toast.error(result.payload || 'Upload failed');
   // };
 
-  const handleResume = async (file) => {
-    const result = await dispatch(uploadResume({ jobId, file }));
-    if (!uploadResume.fulfilled.match(result)) {
-      toast.error(result.payload || 'Upload failed');
-      return;
+  const handleResume = async (fileOrFiles) => {
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+    const resumeFileIds = [];
+    let reused = 0;
+    let failed = 0;
+
+    for (const file of files) {
+      const result = await dispatch(uploadResume({ jobId, file }));
+      if (!uploadResume.fulfilled.match(result)) {
+        failed += 1;
+        continue;
+      }
+      if (result.payload?.reused) {
+        reused += 1;
+        continue;
+      }
+      if (result.payload?.resumeFileId) {
+        resumeFileIds.push(result.payload.resumeFileId);
+      }
     }
 
-    if (result.payload?.reused) {
-      toast.success('Resume already on file — linked to this job');
-      await loadCandidates();
+    if (failed && !resumeFileIds.length && !reused) {
+      toast.error(files.length > 1 ? 'All uploads failed' : 'Upload failed');
       return;
     }
+    if (failed) toast.warning(`${failed} file(s) failed to upload`);
+    if (reused) toast.success(`${reused} resume(s) already on file — linked to this job`);
 
-    if (result.payload?.resumeFileId) {
-      toast.message('Upload complete — parsing started');
-      watchResumeParse([result.payload.resumeFileId], file.name);
+    if (resumeFileIds.length) {
+      toast.message(
+        resumeFileIds.length > 1
+          ? `Upload complete — parsing ${resumeFileIds.length} files`
+          : 'Upload complete — parsing started'
+      );
+      watchResumeParse(resumeFileIds, files[0]?.name);
     } else {
       await loadCandidates();
     }
   };
 
   const toggleSelect = (id) => {
+    const row = items.find((item) => item.candidateJobId === id);
+    if (row && !isCandidateSelectable(row, eligibilityThreshold)) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -325,20 +362,71 @@ const handleActivate = () => {
     });
   };
 
-  const toggleAll = (checked) => {
-    setSelectedIds(checked ? new Set(items.map((c) => c.candidateJobId)) : new Set());
+  const eligibleItems = items.filter((row) => isCandidateEligible(row, eligibilityThreshold));
+  const eligibleCount = countEligible(items, eligibilityThreshold);
+  const eligibleIds = eligibleItems.map((row) => row.candidateJobId);
+  const selectAllEligibleChecked =
+    eligibleIds.length > 0 && eligibleIds.every((id) => selectedIds.has(id));
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (!prev.size) return prev;
+      const allowed = new Set(
+        items
+          .filter((row) => isCandidateSelectable(row, eligibilityThreshold))
+          .map((row) => row.candidateJobId)
+      );
+      let changed = false;
+      const next = new Set();
+      prev.forEach((id) => {
+        if (allowed.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [items, eligibilityThreshold]);
+
+  const toggleSelectAllEligible = (checked) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        eligibleIds.forEach((id) => next.add(id));
+      } else {
+        eligibleIds.forEach((id) => next.delete(id));
+      }
+      return next;
+    });
   };
 
   const handleSelectForOutreach = async () => {
+    if (!selectedIds.size) {
+      toast.error('Select at least one candidate');
+      return;
+    }
     const result = await dispatch(selectCandidates({
       jobId,
       payload: { mode: RankingMode.MANUAL, candidateJobIds: [...selectedIds] },
     }));
     if (selectCandidates.fulfilled.match(result)) {
-      toast.success(`${result.payload.selected} candidate(s) selected — outreach email queued`);
+      toast.success(`${result.payload.selected} candidate(s) invited — outreach email queued`);
       setSelectedIds(new Set());
       loadCandidates();
-    } else toast.error(result.payload || 'Selection failed');
+      dispatch(fetchDashboardStats({ jobId }));
+    } else toast.error(result.payload || 'Invite failed');
+  };
+
+  const handleInviteOne = async (row) => {
+    setInvitingId(row.candidateJobId);
+    const result = await dispatch(selectCandidates({
+      jobId,
+      payload: { mode: RankingMode.MANUAL, candidateJobIds: [row.candidateJobId] },
+    }));
+    setInvitingId(null);
+    if (selectCandidates.fulfilled.match(result)) {
+      toast.success('Invite queued');
+      loadCandidates();
+      dispatch(fetchDashboardStats({ jobId }));
+    } else toast.error(result.payload || 'Invite failed');
   };
 
   const busy = uploading || Boolean(parseProgress?.active);
@@ -360,22 +448,23 @@ const handleActivate = () => {
 
 return (
   <>
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto w-full max-w-8xl space-y-6">
         <JobDetailHeader
-  job={job}
-  onDeactivate={handleDeactivate}
-  onActivate={handleActivate}
-  deactivating={saving}
-/>
+          job={job}
+          candidateCount={stats?.totalCandidates}
+          onDeactivate={handleDeactivate}
+          onActivate={handleActivate}
+          deactivating={saving}
+        />
 
-        <div className="flex gap-2 border-b border-border">
+        <div className="flex gap-1 overflow-x-auto border-b border-border">
           {TABS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
               className={cn(
-                'border-b-2 px-4 py-2 text-sm font-medium transition-colors',
+                'shrink-0 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
                 tab === id
                   ? 'border-brand-600 text-brand-700'
                   : 'border-transparent text-muted hover:text-foreground'
@@ -387,45 +476,35 @@ return (
         </div>
 
         {tab === 'overview' && (
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              <p className="whitespace-pre-wrap text-sm text-foreground">{job.jobDescription}</p>
-              <div className="grid gap-3 text-sm sm:grid-cols-2">
-                <p><span className="text-muted">Experience:</span> {job.experienceMin}–{job.experienceMax} years</p>
-                <p><span className="text-muted">Skills:</span> {(job.mandatorySkills || []).join(', ')}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setTab('candidates')}>
-                Manage candidates
-              </Button>
-            </CardContent>
-          </Card>
+          <JobOverviewTab job={job} stats={stats} />
         )}
 
         {tab === 'candidates' && (
-          <div className="space-y-6">
-            {/* <div className="grid gap-4 lg:grid-cols-2">
-              <FileUploadZone type="excel" onUpload={handleExcel} uploading={busy} />
-              <FileUploadZone type="resume" onUpload={handleResume} uploading={busy} />
-            </div> */}
-
-            <div className="grid gap-4">
-  <FileUploadZone
-    type="resume"
-    onUpload={handleResume}
-    uploading={busy}
-  />
-</div>
+          <div className="space-y-5">
+            <FileUploadZone
+              type="resume"
+              onUpload={handleResume}
+              uploading={busy}
+            />
 
             <ResumeProcessingBanner progress={parseProgress} />
 
-            <SelectCandidatesBar
-              selectedCount={selectedIds.size}
-              selecting={selecting}
-              onSelect={handleSelectForOutreach}
+            <CandidatesEligibilityBar
+              threshold={eligibilityThreshold}
+              onThresholdChange={setEligibilityThreshold}
+              eligibleCount={eligibleCount}
+              totalCount={items.length}
             />
-            <Card>
-              <CardContent className="pt-6">
-                <div className="mb-4 flex items-center justify-between gap-3">
+
+            <CandidatesToolbar
+              selectAllEligibleChecked={selectAllEligibleChecked}
+              onToggleSelectAllEligible={toggleSelectAllEligible}
+              eligibleCount={eligibleCount}
+            />
+
+            <Card className="rounded-xl border-border shadow-none">
+              <CardContent className="p-0 pt-0">
+                <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                   <p className="text-xs text-muted">
                     List updates once parsing finishes (match scores may land a few seconds later)
                   </p>
@@ -433,20 +512,42 @@ return (
                     Refresh list
                   </Button>
                 </div>
-                <CandidateTable
-                  items={items}
-                  loading={loading}
-                  selectedIds={selectedIds}
-                  deletingId={deletingId}
-                  onToggle={toggleSelect}
-                  onToggleAll={toggleAll}
-                  onDelete={handleDeleteCandidate}
-                  onViewInterview={handleViewInterview}
-                />
-                <PaginationBar pagination={pagination} onPageChange={setPage} />
+                <div className="px-1 pb-2">
+                  <CandidateTable
+                    items={items}
+                    loading={loading}
+                    selectedIds={selectedIds}
+                    deletingId={deletingId}
+                    threshold={eligibilityThreshold}
+                    onToggle={toggleSelect}
+                    onDelete={handleDeleteCandidate}
+                    onViewInterview={handleViewInterview}
+                    onInviteOne={handleInviteOne}
+                    invitingId={invitingId}
+                  />
+                </div>
+                <div className="border-t border-border px-4 py-3">
+                  <PaginationBar pagination={pagination} onPageChange={setPage} />
+                </div>
               </CardContent>
             </Card>
+
+            <CandidatesSelectionBar
+              selectedCount={selectedIds.size}
+              onClear={() => setSelectedIds(new Set())}
+              onInvite={handleSelectForOutreach}
+              inviting={selecting && !invitingId}
+            />
           </div>
+        )}
+
+        {(tab === 'outreach' || tab === 'interviews' || tab === 'decisions') && (
+          <Card className="rounded-xl border-border shadow-none">
+            <CardContent className="py-12 text-center">
+              <p className="text-sm font-medium text-foreground capitalize">{tab}</p>
+              <p className="mt-1 text-sm text-muted">This section is coming soon.</p>
+            </CardContent>
+          </Card>
         )}
       </div>
 
@@ -460,13 +561,6 @@ return (
         loading={Boolean(deletingId) || saving}
         onOpenChange={(open) => { if (!open) closeConfirm(); }}
         onConfirm={handleConfirm}
-      />
-
-           <InterviewScorecardDrawer
-        open={Boolean(interviewDrawer)}
-        candidateJobId={interviewDrawer?.candidateJobId}
-        candidateName={interviewDrawer?.candidateName}
-        onOpenChange={(open) => { if (!open) setInterviewDrawer(null); }}
       />
     </>
   );

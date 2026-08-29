@@ -11,6 +11,7 @@ import {
   Settings2,
   UserPlus,
   Users,
+  Video,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Roles } from '@/lib/roles';
@@ -34,6 +35,7 @@ const navByRole = {
  [Roles.RECRUITER]: [
   { to: '/recruiter', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/recruiter/jobs', label: 'Jobs', icon: Briefcase },
+  { to: '/recruiter/interviews', label: 'Interviews', icon: Video },
   { to: '/recruiter/templates', label: 'Templates', icon: FileText },
   { to: '/recruiter/support', label: 'Support', icon: LifeBuoy },
 ],

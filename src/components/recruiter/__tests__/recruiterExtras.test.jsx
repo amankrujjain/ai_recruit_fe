@@ -22,13 +22,16 @@ vi.mock('@/api/recruitmentApi', () => ({
   getScorecardRequest: vi.fn(),
   getCallRecordsRequest: vi.fn(),
   getDashboardStatsRequest: vi.fn(),
+  getDashboardOverviewRequest: vi.fn(),
+  retryOutreachRequest: vi.fn(),
+  updateCandidateStatusRequest: vi.fn(),
 }));
 
 import { toast } from 'sonner';
 import {
   getScorecardRequest,
   getCallRecordsRequest,
-  getDashboardStatsRequest,
+  getDashboardOverviewRequest,
 } from '@/api/recruitmentApi';
 
 describe('InterviewScorecardDrawer', () => {
@@ -375,25 +378,31 @@ describe('ResumeProcessingBanner', () => {
 });
 
 describe('RecruiterOverview', () => {
+  const overviewFixture = {
+    jobs: { active: 10, inactive: 2 },
+    invitedThisWeek: { count: 4, jobCount: 2 },
+    funnel: {
+      uploaded: 10,
+      eligible: 4,
+      outreachSent: 3,
+      scheduled: 2,
+      scored: 1,
+      selected: 1,
+    },
+    matchThreshold: 80,
+    attention: { noShows: [], eligible: [], bounce: [], scorecardsPending: [] },
+    todaysInterviews: [],
+    orgTimezone: 'UTC',
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    getDashboardStatsRequest.mockResolvedValue({
-      data: {
-        data: {
-          totalCandidates: 10,
-          candidatesRanked: 4,
-          invitationsSent: 3,
-          callsScheduled: 2,
-          callsCompleted: 1,
-          shortlistedCandidates: 1,
-          averageMatchScore: 77,
-          callCompletionRate: 50,
-        },
-      },
+    getDashboardOverviewRequest.mockResolvedValue({
+      data: { data: overviewFixture },
     });
   });
 
-  it('shows skeleton then stats', async () => {
+  it('shows skeleton then overview widgets', async () => {
     renderWithProviders(<RecruiterOverview />, {
       preloadedState: {
         auth: {
@@ -408,17 +417,29 @@ describe('RecruiterOverview', () => {
 
     expect(screen.getByRole('status', { name: /loading page/i })).toBeInTheDocument();
 
-    await waitFor(() => expect(screen.getByText(/welcome, Rae/i)).toBeInTheDocument());
-    expect(screen.getByText('10')).toBeInTheDocument();
-    expect(screen.getByText('77%')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('recruiter-overview')).toBeInTheDocument());
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Active jobs')).toBeInTheDocument();
+    expect(screen.getAllByText('10').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Eligible ≥80%/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /create job/i })).toHaveAttribute(
       'href',
       '/recruiter/jobs/new'
     );
   });
 
-  it('defaults missing stats to 0', async () => {
-    getDashboardStatsRequest.mockResolvedValueOnce({ data: { data: null } });
+  it('defaults missing overview fields to 0', async () => {
+    getDashboardOverviewRequest.mockResolvedValueOnce({
+      data: {
+        data: {
+          jobs: {},
+          invitedThisWeek: {},
+          funnel: {},
+          attention: { noShows: [], eligible: [], bounce: [], scorecardsPending: [] },
+          todaysInterviews: [],
+        },
+      },
+    });
     renderWithProviders(<RecruiterOverview />, {
       preloadedState: {
         auth: {
@@ -431,7 +452,7 @@ describe('RecruiterOverview', () => {
       },
     });
 
-    await waitFor(() => expect(screen.getByText(/welcome, Rae/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('recruiter-overview')).toBeInTheDocument());
     expect(screen.getAllByText('0').length).toBeGreaterThan(0);
   });
 });
@@ -460,7 +481,7 @@ describe('JobDetailHeader / JobTable', () => {
       />
     );
     expect(screen.getByText('Active')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /deactivate/i }));
+    await user.click(screen.getByRole('button', { name: /close job/i }));
     expect(onDeactivate).toHaveBeenCalled();
 
     rerender(
@@ -493,7 +514,7 @@ describe('JobDetailHeader / JobTable', () => {
         deactivating
       />
     );
-    expect(screen.getByRole('button', { name: /deactivating/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /closing/i })).toBeDisabled();
   });
 
   it('table loading / empty / populated', () => {
@@ -510,7 +531,7 @@ describe('JobDetailHeader / JobTable', () => {
           {
             jobId: 'j1',
             jobTitle: 'Dev',
-            location: 'NY',
+            location: ['NY', 'Remote'],
             employmentType: 'FULL_TIME',
             isActive: true,
           },
@@ -526,7 +547,10 @@ describe('JobDetailHeader / JobTable', () => {
       />
     );
     expect(screen.getByText('Dev')).toBeInTheDocument();
-    expect(screen.getByText('Full time')).toBeInTheDocument();
+    expect(screen.getByText('NY, Remote')).toBeInTheDocument();
+    expect(screen.getByText('Full-time')).toBeInTheDocument();
+    expect(screen.getAllByText('0 candidates').length).toBeGreaterThan(0);
+    expect(screen.getByText('Pipeline')).toBeInTheDocument();
     expect(screen.getByText('WEIRD')).toBeInTheDocument();
     expect(screen.getByText('Inactive')).toBeInTheDocument();
   });
@@ -541,17 +565,18 @@ describe('JobForm TagInput and saving', () => {
     );
 
     await user.type(screen.getByLabelText(/job title/i), 'Eng');
-    await user.type(screen.getByLabelText(/description/i), 'Build');
-
-    const locationInput = screen.getByPlaceholderText(/type a location/i);
+    const locationInput = screen.getByPlaceholderText(/add a location/i);
     await user.type(locationInput, 'Remote{Enter}');
     expect(screen.getByText(/remote ✕/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^next$/i }));
 
+    await user.type(screen.getByLabelText(/description/i), 'Build systems here');
     const skillInputs = screen.getAllByPlaceholderText(/type a skill and press enter/i);
     await user.type(skillInputs[0], 'React{Enter}');
     await user.type(skillInputs[1], 'TypeScript{Enter}');
+    await user.click(screen.getByRole('button', { name: /^next$/i }));
 
-    await user.click(screen.getByRole('button', { name: /save job/i }));
+    await user.click(screen.getByRole('button', { name: /publish/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         location: ['Remote'],
@@ -561,7 +586,7 @@ describe('JobForm TagInput and saving', () => {
     );
 
     rerender(<JobForm saving onSubmit={onSubmit} />);
-    expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /publishing/i })).toBeDisabled();
   });
 
   it('fills sparse initial job via toForm defaults', () => {
@@ -579,7 +604,7 @@ describe('JobForm TagInput and saving', () => {
 });
 
 describe('CandidateTable unknown outreach', () => {
-  it('shows raw pipeline status when label missing', () => {
+  it('maps unknown pipeline status to Selected badge', () => {
     render(
       <CandidateTable
         items={[
@@ -596,16 +621,14 @@ describe('CandidateTable unknown outreach', () => {
         selectedIds={new Set()}
         deletingId={null}
         onToggle={vi.fn()}
-        onToggleAll={vi.fn()}
       />
     );
-    expect(screen.getByText('CUSTOM_STATUS')).toBeInTheDocument();
+    expect(screen.getByText('Selected')).toBeInTheDocument();
   });
 
   it('handles missing candidate fields and action callbacks', async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
-    const onToggleAll = vi.fn();
     const onDelete = vi.fn();
     render(
       <CandidateTable
@@ -622,20 +645,18 @@ describe('CandidateTable unknown outreach', () => {
         loading={false}
         selectedIds={new Set()}
         deletingId={null}
+        threshold={80}
         onToggle={onToggle}
-        onToggleAll={onToggleAll}
         onDelete={onDelete}
         onViewInterview={vi.fn()}
       />
     );
 
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
-    await user.click(screen.getByLabelText(/select all/i));
-    expect(onToggleAll).toHaveBeenCalledWith(true);
-    await user.click(screen.getByLabelText('Select undefined'));
-    expect(onToggle).toHaveBeenCalledWith('c9');
-    await user.click(screen.getByLabelText(/remove candidate/i));
+    expect(screen.getByText(/below 80%/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Select Unknown')).toBeDisabled();
+    await user.click(screen.getByLabelText(/remove Unknown/i));
     expect(onDelete).toHaveBeenCalled();
+    expect(onToggle).not.toHaveBeenCalled();
   });
 });
 

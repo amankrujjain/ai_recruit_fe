@@ -1,65 +1,92 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { toast } from 'sonner';
 import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
 import { usePageBootstrap } from '@/hooks/usePageBootstrap';
-import { selectAuth } from '@/store/slices/authSlice';
-import { fetchDashboardStats, selectRecruitment } from '@/store/slices/recruitmentSlice';
-
-const statCards = [
-  { key: 'totalCandidates', label: 'Total candidates' },
-  { key: 'candidatesRanked', label: 'AI ranked' },
-  { key: 'invitationsSent', label: 'Invitations sent' },
-  { key: 'callsScheduled', label: 'Calls scheduled' },
-  { key: 'callsCompleted', label: 'Calls completed' },
-  { key: 'shortlistedCandidates', label: 'Shortlisted' },
-  { key: 'averageMatchScore', label: 'Avg match score', suffix: '%' },
-  { key: 'callCompletionRate', label: 'Call completion', suffix: '%' },
-];
+import { selectAdminOrg } from '@/store/slices/adminOrgSlice';
+import {
+  fetchDashboardOverview,
+  rejectCandidateFromDashboard,
+  retryFailedInvite,
+  selectRecruitment,
+} from '@/store/slices/recruitmentSlice';
+import { DashboardHeader } from '@/components/recruiter/dashboard/DashboardHeader';
+import { NeedsAttentionPanel } from '@/components/recruiter/dashboard/NeedsAttentionPanel';
+import { PipelineFunnelCard } from '@/components/recruiter/dashboard/PipelineFunnelCard';
+import { TodaysInterviewsCard } from '@/components/recruiter/dashboard/TodaysInterviewsCard';
+import { DashboardStatRow } from '@/components/recruiter/dashboard/DashboardStatRow';
 
 export function RecruiterOverview() {
   const dispatch = useDispatch();
-  const { account } = useSelector(selectAuth);
-  const { stats } = useSelector(selectRecruitment);
+  const { organization } = useSelector(selectAdminOrg);
+  const { overview, overviewLoading, actionLoading, error } = useSelector(selectRecruitment);
 
   const booting = usePageBootstrap(
-    () => dispatch(fetchDashboardStats()),
+    () => dispatch(fetchDashboardOverview()),
     [dispatch]
   );
 
-  if (booting) {
+  const handleRetry = async (outreachRecordId) => {
+    const result = await dispatch(retryFailedInvite(outreachRecordId));
+    if (retryFailedInvite.fulfilled.match(result)) {
+      toast.success('Invite re-queued');
+    } else {
+      toast.error(result.payload || 'Failed to retry invite');
+    }
+  };
+
+  const handleReject = async (candidateJobId) => {
+    const result = await dispatch(rejectCandidateFromDashboard(candidateJobId));
+    if (rejectCandidateFromDashboard.fulfilled.match(result)) {
+      toast.success('Candidate rejected');
+    } else {
+      toast.error(result.payload || 'Failed to reject candidate');
+    }
+  };
+
+  if (booting || (overviewLoading && !overview)) {
     return <PageContentSkeleton />;
   }
 
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardContent className="pt-6">
-          <h2 className="text-lg font-semibold">Welcome, {account?.firstName}</h2>
-          <p className="mt-1 text-sm text-muted">Your hiring pipeline at a glance.</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button asChild>
-              <Link to="/recruiter/jobs/new">Create job</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to="/recruiter/jobs">View all jobs</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+  if (error && !overview) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-700">
+        {error}
+      </div>
+    );
+  }
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map(({ key, label, suffix }) => (
-          <Card key={key}>
-            <CardContent className="pt-6">
-              <p className="text-2xl font-bold">
-                {stats?.[key] ?? 0}{suffix || ''}
-              </p>
-              <p className="text-sm text-muted">{label}</p>
-            </CardContent>
-          </Card>
-        ))}
+  const orgName =
+    organization?.settings?.displayName
+    || organization?.organizationName
+    || 'Your organization';
+
+  return (
+    <div className="space-y-6" data-testid="recruiter-overview">
+      <DashboardHeader orgName={orgName} />
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-6">
+          <NeedsAttentionPanel
+            attention={overview?.attention}
+            onRetry={handleRetry}
+            onReject={handleReject}
+            actionLoading={actionLoading}
+          />
+          <DashboardStatRow
+            jobs={overview?.jobs}
+            invitedThisWeek={overview?.invitedThisWeek}
+          />
+        </div>
+        <div className="space-y-4">
+          <PipelineFunnelCard
+            funnel={overview?.funnel}
+            matchThreshold={overview?.matchThreshold}
+          />
+          <TodaysInterviewsCard
+            interviews={overview?.todaysInterviews}
+            orgTimezone={overview?.orgTimezone}
+          />
+        </div>
       </div>
     </div>
   );

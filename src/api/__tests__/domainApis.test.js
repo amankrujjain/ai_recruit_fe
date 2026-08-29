@@ -260,11 +260,22 @@ describe('api domain modules', () => {
       params: { range: '7d' },
     });
 
+    recruitment.getDashboardOverviewRequest();
+    expect(apiClient.get).toHaveBeenCalledWith('/recruitment/dashboard/overview');
+
     recruitment.getScorecardRequest('cj1');
     expect(apiClient.get).toHaveBeenCalledWith('/recruitment/cj1/scorecard');
 
     recruitment.getCallRecordsRequest('cj1');
     expect(apiClient.get).toHaveBeenCalledWith('/recruitment/cj1/calls');
+
+    recruitment.updateCandidateStatusRequest('cj1', 'REJECTED_MANUALLY');
+    expect(apiClient.patch).toHaveBeenCalledWith('/recruitment/cj1/status', {
+      status: 'REJECTED_MANUALLY',
+    });
+
+    recruitment.retryOutreachRequest('or1');
+    expect(apiClient.post).toHaveBeenCalledWith('/recruitment/outreach/or1/retry');
 
     country.listCountriesRequest('ind');
     expect(apiClient.get).toHaveBeenCalledWith('/countries', {

@@ -3,8 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { usePageTitle } from '@/context/PageTitleContext';
-import { PageHeader } from '@/components/layout/PageHeader';
-import { Card, CardContent } from '@/components/ui/Card';
 import { JobForm } from '@/components/recruiter/jobs/JobForm';
 import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
 import {
@@ -46,21 +44,11 @@ export function JobFormPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <PageHeader
-        title={isEdit ? 'Edit job posting' : 'New job posting'}
-        subtitle={isEdit ? 'Update role details and requirements.' : 'Define the role you are hiring for.'}
-      />
-      <Card>
-        <CardContent className="pt-6">
-          <JobForm
-            initial={isEdit ? current : null}
-            saving={saving}
-            onSubmit={handleSubmit}
-            onCancel={() => navigate(isEdit ? `/recruiter/jobs/${jobId}` : '/recruiter/jobs')}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <JobForm
+      initial={isEdit ? current : null}
+      saving={saving}
+      onSubmit={handleSubmit}
+      onCancel={() => navigate(isEdit ? `/recruiter/jobs/${jobId}` : '/recruiter/jobs')}
+    />
   );
 }

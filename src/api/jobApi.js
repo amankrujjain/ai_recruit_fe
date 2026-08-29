@@ -11,6 +11,9 @@ export const updateJobRequest = (jobId, payload) => apiClient.patch(`/jobs/${job
 export const listCandidatesRequest = (jobId, params) =>
   apiClient.get(`/jobs/${jobId}/candidates`, { params });
 
+export const getCandidateRequest = (jobId, candidateJobId) =>
+  apiClient.get(`/jobs/${jobId}/candidates/${candidateJobId}`);
+
 export const selectCandidatesRequest = (jobId, payload) =>
   apiClient.post(`/jobs/${jobId}/candidates/select`, payload);
 

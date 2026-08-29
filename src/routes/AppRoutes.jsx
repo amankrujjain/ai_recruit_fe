@@ -83,6 +83,10 @@ const RecruiterTemplatesPage = lazyPage(
   () => import('@/pages/recruiter/RecruiterTemplatesPage'),
   'RecruiterTemplatesPage'
 );
+const RecruiterInterviewsPage = lazyPage(
+  () => import('@/pages/recruiter/RecruiterInterviewsPage'),
+  'RecruiterInterviewsPage'
+);
 const JobFormPage = lazyPage(
   () => import('@/pages/recruiter/JobFormPage'),
   'JobFormPage'
@@ -90,6 +94,10 @@ const JobFormPage = lazyPage(
 const JobDetailPage = lazyPage(
   () => import('@/pages/recruiter/JobDetailPage'),
   'JobDetailPage'
+);
+const CandidateProfilePage = lazyPage(
+  () => import('@/pages/recruiter/CandidateProfilePage'),
+  'CandidateProfilePage'
 );
 
 const SupportCenterPage = lazyPage(
@@ -164,7 +172,9 @@ export function AppRoutes() {
               <Route path="/recruiter/jobs" element={<RecruiterJobsPage />} />
               <Route path="/recruiter/jobs/new" element={<JobFormPage />} />
               <Route path="/recruiter/jobs/:jobId/edit" element={<JobFormPage />} />
+              <Route path="/recruiter/jobs/:jobId/candidates/:candidateJobId" element={<CandidateProfilePage />} />
               <Route path="/recruiter/jobs/:jobId" element={<JobDetailPage />} />
+              <Route path="/recruiter/interviews" element={<RecruiterInterviewsPage />} />
               <Route path="/recruiter/templates" element={<RecruiterTemplatesPage />} />
               <Route path="/recruiter/support" element={<SupportCenterPage />} />
             </Route>
