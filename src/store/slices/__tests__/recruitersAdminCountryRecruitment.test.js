@@ -27,6 +27,9 @@ vi.mock('@/api/countryApi', () => ({
 
 vi.mock('@/api/recruitmentApi', () => ({
   getDashboardStatsRequest: vi.fn(),
+  getDashboardOverviewRequest: vi.fn(),
+  retryOutreachRequest: vi.fn(),
+  updateCandidateStatusRequest: vi.fn(),
 }));
 
 import {
@@ -48,7 +51,8 @@ import {
   getAuditStatsRequest,
 } from '@/api/adminOrgApi';
 import { listCountriesRequest } from '@/api/countryApi';
-import { getDashboardStatsRequest } from '@/api/recruitmentApi';
+import { getDashboardStatsRequest, getDashboardOverviewRequest } from '@/api/recruitmentApi';
+
 
 import recruitersReducer, {
   fetchRecruiters,
@@ -70,7 +74,10 @@ import adminOrgReducer, {
   fetchAuditStats,
 } from '@/store/slices/adminOrgSlice';
 import countryReducer, { fetchCountries } from '@/store/slices/countrySlice';
-import recruitmentReducer, { fetchDashboardStats } from '@/store/slices/recruitmentSlice';
+import recruitmentReducer, {
+  fetchDashboardStats,
+  fetchDashboardOverview,
+} from '@/store/slices/recruitmentSlice';
 
 describe('recruitersSlice', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -292,5 +299,18 @@ describe('countrySlice + recruitmentSlice', () => {
     getDashboardStatsRequest.mockRejectedValueOnce({});
     await store.dispatch(fetchDashboardStats());
     expect(store.getState().recruitment.error).toBe('Failed to load dashboard stats');
+  });
+
+  it('fetchDashboardOverview lifecycle', async () => {
+    const store = configureStore({ reducer: { recruitment: recruitmentReducer } });
+    getDashboardOverviewRequest.mockResolvedValueOnce({
+      data: { data: { funnel: { uploaded: 1 }, attention: { total: 0 } } },
+    });
+    await store.dispatch(fetchDashboardOverview());
+    expect(store.getState().recruitment.overview.funnel.uploaded).toBe(1);
+
+    getDashboardOverviewRequest.mockRejectedValueOnce({});
+    await store.dispatch(fetchDashboardOverview());
+    expect(store.getState().recruitment.error).toBe('Failed to load dashboard');
   });
 });

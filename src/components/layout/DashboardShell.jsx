@@ -48,14 +48,20 @@ export function DashboardShell({ children }) {
   const { account } = useSelector(selectAuth);
   const { organization, billing } = useSelector(selectAdminOrg);
   const isAdmin = account?.role === Roles.ADMIN;
+  const isRecruiter = account?.role === Roles.RECRUITER;
 
   useEffect(() => {
-    if (!isAdmin) return;
-    dispatch(fetchMyOrganization());
-    if (account?.onboardingCompleted !== false) {
-      dispatch(fetchBilling());
+    if (isAdmin) {
+      dispatch(fetchMyOrganization());
+      if (account?.onboardingCompleted !== false) {
+        dispatch(fetchBilling());
+      }
+      return;
     }
-  }, [dispatch, isAdmin, account?.onboardingCompleted]);
+    if (isRecruiter) {
+      dispatch(fetchMyOrganization());
+    }
+  }, [dispatch, isAdmin, isRecruiter, account?.onboardingCompleted]);
 
   return (
     <div className="flex h-dvh max-h-dvh w-full overflow-hidden bg-surface">
@@ -67,18 +73,25 @@ export function DashboardShell({ children }) {
           <p className="text-lg font-bold text-brand-700">RecruitAI</p>
         </div>
 
-        {isAdmin && (
+        {(isAdmin || isRecruiter) && (
           <div className="shrink-0 px-4 pb-4">
-            <button
-              type="button"
-              className="flex w-full items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-brand-50"
-            >
-              <Building2 className="h-4 w-4 shrink-0 text-brand-500" />
-              <span className="min-w-0 flex-1 truncate">
-                {organization?.organizationName || 'Your organization'}
-              </span>
-              {/* <ChevronDown className="h-4 w-4 shrink-0 text-muted" /> */}
-            </button>
+            {isAdmin ? (
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-brand-50"
+              >
+                <Building2 className="h-4 w-4 shrink-0 text-brand-500" />
+                <span className="min-w-0 flex-1 truncate">
+                  {organization?.organizationName || 'Your organization'}
+                </span>
+              </button>
+            ) : (
+              <div className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600">
+                <span className="block truncate">
+                  {organization?.organizationName || 'Your organization'}
+                </span>
+              </div>
+            )}
           </div>
         )}
 

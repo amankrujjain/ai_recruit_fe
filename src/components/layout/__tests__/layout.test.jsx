@@ -91,6 +91,10 @@ describe('SidebarNav', () => {
       '/recruiter'
     );
     expect(screen.getByRole('link', { name: /^jobs$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^interviews$/i })).toHaveAttribute(
+      'href',
+      '/recruiter/interviews'
+    );
 
     rerender(<SidebarNav role="UNKNOWN" />);
     expect(screen.queryByRole('link')).toBeNull();
@@ -335,7 +339,7 @@ describe('DashboardShell', () => {
     await waitFor(() => expect(screen.getByText('Free Plan')).toBeInTheDocument());
   });
 
-  it('skips admin chrome for recruiter', () => {
+  it('skips admin chrome for recruiter but shows org chip', async () => {
     renderWithProviders(
       <DashboardShell>
         <div>Recruiter page</div>
@@ -353,12 +357,21 @@ describe('DashboardShell', () => {
             error: null,
             initialized: true,
           },
+          adminOrg: {
+            organization: { organizationName: 'Northwind Hiring' },
+            billing: null,
+            loading: false,
+            billingLoading: false,
+            error: null,
+          },
         },
       }
     );
 
     expect(screen.getByText('Recruiter page')).toBeInTheDocument();
     expect(screen.queryByText(/view plan details/i)).toBeNull();
+    expect(screen.getByText('Northwind Hiring')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^jobs$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^interviews$/i })).toBeInTheDocument();
   });
 });

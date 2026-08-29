@@ -15,13 +15,13 @@ vi.mock('@/components/admin/recruiters/RecruiterRowActions', () => ({
 }));
 
 describe('FileUploadZone', () => {
-  it('uploads first file only and respects disabled/excel label', async () => {
+  it('uploads files and respects disabled/excel label', async () => {
     const user = userEvent.setup();
     const onUpload = vi.fn();
     const { rerender } = render(
       <FileUploadZone type="resume" onUpload={onUpload} />
     );
-    expect(screen.getByText(/upload resume/i)).toBeInTheDocument();
+    expect(screen.getByText(/drop cvs here or browse files/i)).toBeInTheDocument();
 
     const input = document.querySelector('input[type="file"]');
     const file = new File(['pdf'], 'cv.pdf', { type: 'application/pdf' });
@@ -30,7 +30,7 @@ describe('FileUploadZone', () => {
 
     rerender(<FileUploadZone type="excel" onUpload={onUpload} disabled />);
     expect(screen.getByText(/excel spreadsheet/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /choose file/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /browse files/i })).toBeDisabled();
   });
 
   it('handles drag over, leave, and drop', async () => {
@@ -82,10 +82,9 @@ describe('CandidateStatusBadge / SelectCandidatesBar', () => {
 });
 
 describe('CandidateTable', () => {
-  it('loading / empty / populated with score and interview gating', async () => {
+  it('loading / empty / populated with match and actions', async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
-    const onToggleAll = vi.fn();
     const onViewInterview = vi.fn();
     const { rerender } = render(
       <CandidateTable
@@ -94,7 +93,6 @@ describe('CandidateTable', () => {
         selectedIds={new Set()}
         deletingId={null}
         onToggle={onToggle}
-        onToggleAll={onToggleAll}
       />
     );
     expect(screen.getByText(/loading candidates/i)).toBeInTheDocument();
@@ -106,7 +104,6 @@ describe('CandidateTable', () => {
         selectedIds={new Set()}
         deletingId={null}
         onToggle={onToggle}
-        onToggleAll={onToggleAll}
       />
     );
     expect(screen.getByText(/no candidates yet/i)).toBeInTheDocument();
@@ -124,7 +121,8 @@ describe('CandidateTable', () => {
         candidateJobId: 'c2',
         status: CandidateStatus.CALL_COMPLETED,
         overallMatch: 87.6,
-        candidate: { name: 'Bob', email: 'b@b.com' },
+        candidate: { name: 'Bob', email: 'b@b.com', experienceYears: 5 },
+        job: { jobTitle: 'Engineer' },
         outreachRecords: [{ pipelineStatus: 'EMAIL_SENT' }],
         manuallySelected: true,
       },
@@ -136,20 +134,20 @@ describe('CandidateTable', () => {
         loading={false}
         selectedIds={new Set(['c1'])}
         deletingId="c1"
+        threshold={80}
         onToggle={onToggle}
-        onToggleAll={onToggleAll}
         onViewInterview={onViewInterview}
         onDelete={vi.fn()}
       />
     );
 
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    expect(screen.getByText('Pending')).toBeInTheDocument();
     expect(screen.getByText('88%')).toBeInTheDocument();
+    expect(screen.getByText('Eligible')).toBeInTheDocument();
     expect(screen.getByText('Email sent')).toBeInTheDocument();
-    expect(screen.getByText('Yes')).toBeInTheDocument();
-    expect(screen.getByText(/removing/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/view interview for Ada/i)).toBeNull();
-    await user.click(screen.getByLabelText(/view interview for Bob/i));
+    expect(screen.getByLabelText(/invite Bob \(already sent\)/i)).toBeDisabled();
+    expect(screen.getByLabelText(/remove Ada/i)).toBeInTheDocument();
+    await user.click(screen.getByLabelText(/view Bob/i));
     expect(onViewInterview).toHaveBeenCalled();
   });
 });
@@ -217,25 +215,38 @@ describe('RecruiterTable', () => {
 });
 
 describe('JobForm', () => {
-  it('uses defaults and coerces submit payload', async () => {
+  async function fillStep1AndAdvance(user) {
+    await user.type(screen.getByLabelText(/job title/i), '  Engineer  ');
+    const locationInput = screen.getByPlaceholderText(/add a location/i);
+    await user.type(locationInput, 'Remote{Enter}');
+    await user.click(screen.getByRole('button', { name: /^next$/i }));
+  }
+
+  it('uses defaults and coerces submit payload through wizard', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
     render(<JobForm saving={false} onSubmit={onSubmit} onCancel={vi.fn()} />);
 
-    await user.type(screen.getByLabelText(/job title/i), '  Engineer  ');
-    await user.type(screen.getByLabelText(/description/i), '  Build APIs  ');
-    await user.click(screen.getByRole('button', { name: /save job/i }));
+    expect(screen.getByRole('heading', { name: 'Role details' })).toBeInTheDocument();
+    await fillStep1AndAdvance(user);
+
+    await user.type(screen.getByLabelText(/description/i), '  Build APIs long enough  ');
+    const skillInputs = screen.getAllByPlaceholderText(/type a skill and press enter/i);
+    await user.type(skillInputs[0], 'React{Enter}');
+    await user.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await user.click(screen.getByRole('button', { name: /publish/i }));
 
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         jobTitle: 'Engineer',
-        jobDescription: 'Build APIs',
+        jobDescription: 'Build APIs long enough',
         experienceMin: 0,
         experienceMax: 5,
         salaryMin: undefined,
         salaryMax: undefined,
-        location: [],
-        mandatorySkills: [],
+        location: ['Remote'],
+        mandatorySkills: ['React'],
         preferredSkills: [],
       })
     );
@@ -249,7 +260,7 @@ describe('JobForm', () => {
       <JobForm
         initial={{
           jobTitle: 'Dev',
-          jobDescription: 'Code',
+          jobDescription: 'Code enough text',
           experienceMin: 2,
           experienceMax: 4,
           salaryMin: 100,
@@ -264,7 +275,9 @@ describe('JobForm', () => {
       />
     );
     expect(screen.getByDisplayValue('Dev')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /save job/i }));
+    await user.click(screen.getByRole('button', { name: /^next$/i }));
+    await user.click(screen.getByRole('button', { name: /^next$/i }));
+    await user.click(screen.getByRole('button', { name: /publish/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         salaryMin: 100,

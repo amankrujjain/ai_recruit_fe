@@ -50,10 +50,15 @@ describe('jobsSlice', () => {
   it('fetchJobs lifecycle and fallback error', async () => {
     const store = makeJobsStore();
     listJobsRequest.mockResolvedValueOnce({
-      data: { data: [{ jobId: '1' }], pagination: { page: 1 } },
+      data: {
+        data: [{ jobId: '1' }],
+        pagination: { page: 1 },
+        summary: { active: 1, inactive: 0, total: 1 },
+      },
     });
     await store.dispatch(fetchJobs());
     expect(store.getState().jobs.items).toHaveLength(1);
+    expect(store.getState().jobs.summary).toEqual({ active: 1, inactive: 0, total: 1 });
 
     listJobsRequest.mockRejectedValueOnce({});
     await store.dispatch(fetchJobs());
@@ -80,6 +85,24 @@ describe('jobsSlice', () => {
     createJobRequest.mockResolvedValueOnce({ data: { data: { jobId: '2' } } });
     await store.dispatch(createJob({ jobTitle: 'B' }));
     expect(store.getState().jobs.current.jobId).toBe('2');
+
+    createJobRequest.mockRejectedValueOnce({
+      response: {
+        data: {
+          message: 'Validation failed',
+          errors: [
+            {
+              field: 'jobDescription',
+              message: '"jobDescription" length must be at least 10 characters long',
+            },
+          ],
+        },
+      },
+    });
+    await store.dispatch(createJob({ jobTitle: 'Short' }));
+    expect(store.getState().jobs.error).toBe(
+      'Job Description length must be at least 10 characters long'
+    );
 
     updateJobRequest.mockResolvedValueOnce({
       data: { data: { jobId: '1', jobTitle: 'Updated' } },

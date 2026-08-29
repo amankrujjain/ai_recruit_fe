@@ -5,7 +5,7 @@ export function RecruiterDashboardPage() {
   usePageTitle('Recruiter Dashboard');
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <RecruiterOverview />
     </div>
   );

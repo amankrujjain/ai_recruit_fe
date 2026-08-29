@@ -5,15 +5,20 @@ import {
   createJobRequest,
   updateJobRequest,
 } from '@/api/jobApi';
+import { getApiErrorMessage } from '@/lib/apiError';
 
 export const fetchJobs = createAsyncThunk(
   'jobs/list',
   async (params, { rejectWithValue }) => {
     try {
       const { data } = await listJobsRequest(params);
-      return { items: data.data, pagination: data.pagination };
+      return {
+        items: data.data,
+        pagination: data.pagination,
+        summary: data.summary ?? null,
+      };
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to load jobs');
+      return rejectWithValue(getApiErrorMessage(err, 'Failed to load jobs'));
     }
   }
 );
@@ -25,7 +30,7 @@ export const fetchJob = createAsyncThunk(
       const { data } = await getJobRequest(jobId);
       return data.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to load job');
+      return rejectWithValue(getApiErrorMessage(err, 'Failed to load job'));
     }
   }
 );
@@ -37,7 +42,7 @@ export const createJob = createAsyncThunk(
       const { data } = await createJobRequest(payload);
       return data.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to create job');
+      return rejectWithValue(getApiErrorMessage(err, 'Failed to create job'));
     }
   }
 );
@@ -49,7 +54,7 @@ export const updateJob = createAsyncThunk(
       const { data } = await updateJobRequest(jobId, payload);
       return data.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to update job');
+      return rejectWithValue(getApiErrorMessage(err, 'Failed to update job'));
     }
   }
 );
@@ -61,7 +66,7 @@ export const deactivateJob = createAsyncThunk(
       const { data } = await updateJobRequest(jobId, { isActive: false });
       return data.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to deactivate job');
+      return rejectWithValue(getApiErrorMessage(err, 'Failed to deactivate job'));
     }
   }
 );
@@ -73,7 +78,7 @@ export const activateJob = createAsyncThunk(
       const { data } = await updateJobRequest(jobId, { isActive: true });
       return data.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to activate job');
+      return rejectWithValue(getApiErrorMessage(err, 'Failed to activate job'));
     }
   }
 );
@@ -83,6 +88,7 @@ const jobsSlice = createSlice({
   initialState: {
     items: [],
     pagination: null,
+    summary: null,
     current: null,
     loading: false,
     detailLoading: false,
@@ -99,6 +105,7 @@ const jobsSlice = createSlice({
         s.loading = false;
         s.items = a.payload.items;
         s.pagination = a.payload.pagination;
+        s.summary = a.payload.summary;
       })
       .addCase(fetchJobs.rejected, (s, a) => { s.loading = false; s.error = a.payload; })
       .addCase(fetchJob.pending, (s) => { s.detailLoading = true; s.error = null; })
@@ -119,11 +126,11 @@ const jobsSlice = createSlice({
         s.items = s.items.map((j) => (j.jobId === a.payload.jobId ? a.payload : j));
       })
       .addCase(activateJob.fulfilled, (s, a) => {
-  s.current = a.payload;
-  s.items = s.items.map((j) =>
-    j.jobId === a.payload.jobId ? a.payload : j
-  );
- });
+        s.current = a.payload;
+        s.items = s.items.map((j) =>
+          (j.jobId === a.payload.jobId ? a.payload : j)
+        );
+      });
   },
 });
 

@@ -94,6 +94,9 @@ vi.mock('@/pages/recruiter/RecruiterJobsPage', () => ({
 vi.mock('@/pages/recruiter/RecruiterTemplatesPage', () => ({
   RecruiterTemplatesPage: () => <div>recruiter-templates</div>,
 }));
+vi.mock('@/pages/recruiter/RecruiterInterviewsPage', () => ({
+  RecruiterInterviewsPage: () => <div>recruiter-interviews</div>,
+}));
 vi.mock('@/pages/recruiter/JobFormPage', () => ({
   JobFormPage: () => <div>job-form</div>,
 }));

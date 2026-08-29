@@ -26,6 +26,7 @@ vi.mock('@/api/jobApi', () => ({
   createJobRequest: vi.fn(),
   updateJobRequest: vi.fn(),
   listCandidatesRequest: vi.fn(),
+  getCandidateRequest: vi.fn(),
   uploadResumeRequest: vi.fn(),
   selectCandidatesRequest: vi.fn(),
   deleteCandidateRequest: vi.fn(),
@@ -34,6 +35,9 @@ vi.mock('@/api/jobApi', () => ({
 
 vi.mock('@/api/recruitmentApi', () => ({
   getDashboardStatsRequest: vi.fn(),
+  getDashboardOverviewRequest: vi.fn(),
+  retryOutreachRequest: vi.fn(),
+  updateCandidateStatusRequest: vi.fn(),
 }));
 
 vi.mock('@/api/adminOrgApi', () => ({
@@ -147,18 +151,43 @@ vi.mock('@/components/recruiter/candidates/CandidateTable', () => ({
   },
 }));
 
-vi.mock('@/components/recruiter/candidates/SelectCandidatesBar', () => ({
-  SelectCandidatesBar: (props) => {
-    captured.selectCandidatesBar = props;
+vi.mock('@/components/recruiter/candidates/CandidatesToolbar', () => ({
+  CandidatesToolbar: (props) => {
+    captured.candidatesToolbar = props;
     return (
-      <div data-testid="select-candidates-bar">
-        <span>Selected: {props.selectedCount}</span>
-        <button type="button" onClick={props.onSelect}>
-          Select for outreach
+      <div data-testid="candidates-toolbar">
+        <button type="button" onClick={() => props.onToggleSelectAllEligible?.(true)}>
+          Select all eligible
         </button>
       </div>
     );
   },
+}));
+
+vi.mock('@/components/recruiter/candidates/CandidatesSelectionBar', () => ({
+  CandidatesSelectionBar: (props) => {
+    captured.candidatesSelectionBar = props;
+    if (!props.selectedCount) return null;
+    return (
+      <div data-testid="candidates-selection-bar">
+        <span>Selected: {props.selectedCount}</span>
+        <button type="button" onClick={props.onClear}>
+          Cancel
+        </button>
+        <button type="button" onClick={props.onInvite}>
+          Invite to AI interview
+        </button>
+      </div>
+    );
+  },
+}));
+
+vi.mock('@/components/recruiter/candidates/CandidatesEligibilityBar', () => ({
+  CandidatesEligibilityBar: (props) => (
+    <div data-testid="eligibility-bar">
+      {props.eligibleCount} of {props.totalCount} eligible · {props.threshold}%
+    </div>
+  ),
 }));
 
 vi.mock('@/components/recruiter/candidates/ResumeProcessingBanner', () => ({
@@ -217,6 +246,7 @@ import {
   deleteCandidateRequest,
   getResumeStatusRequest,
 } from '@/api/jobApi';
+import { getDashboardStatsRequest } from '@/api/recruitmentApi';
 import { getMyOrganizationRequest } from '@/api/adminOrgApi';
 
 const jobFixture = {
@@ -231,6 +261,7 @@ const jobFixture = {
 
 const candidateFixture = {
   candidateJobId: 'cand-1',
+  overallMatch: 92,
   candidate: { name: 'Ada Lovelace' },
 };
 
@@ -278,19 +309,38 @@ describe('RecruiterJobsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listJobsRequest.mockResolvedValue({
-      data: { data: [{ jobId: 'j1', jobTitle: 'Role' }], pagination: { page: 1, totalPages: 1 } },
+      data: {
+        data: [{ jobId: 'j1', jobTitle: 'Role', location: ['Remote'], employmentType: 'FULL_TIME', isActive: true }],
+        pagination: { page: 1, totalPages: 1, total: 1 },
+        summary: { active: 3, inactive: 1, total: 4 },
+      },
     });
   });
 
-  it('shows skeleton then jobs list with search', async () => {
+  it('shows skeleton then jobs list with search and status filters', async () => {
     const user = userEvent.setup();
     renderRecruiterPage(<RecruiterJobsPage />, { route: '/recruiter/jobs' });
 
     await waitFor(() => expect(screen.getByText('Job postings')).toBeInTheDocument());
+    expect(screen.getByText('3 active · 4 total')).toBeInTheDocument();
     expect(screen.getByText('Role')).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText('Search jobs…'), 'eng');
     await waitFor(() => expect(listJobsRequest).toHaveBeenCalled());
+
+    await user.click(screen.getByRole('button', { name: 'Active' }));
+    await waitFor(() =>
+      expect(listJobsRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ isActive: true })
+      )
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Inactive' }));
+    await waitFor(() =>
+      expect(listJobsRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ isActive: false })
+      )
+    );
   });
 });
 
@@ -504,6 +554,19 @@ describe('JobDetailPage', () => {
       captured[key] = null;
     });
     getJobRequest.mockResolvedValue({ data: { data: jobFixture } });
+    getDashboardStatsRequest.mockResolvedValue({
+      data: {
+        data: {
+          totalCandidates: 24,
+          candidatesUploaded: 20,
+          eligibleMatch: 8,
+          invitationsSent: 3,
+          callsCompleted: 2,
+          callsScheduled: 2,
+          matchThreshold: 80,
+        },
+      },
+    });
     listCandidatesRequest.mockResolvedValue({
       data: {
         data: [candidateFixture],
@@ -521,6 +584,10 @@ describe('JobDetailPage', () => {
       <PageTitleProvider>
         <Routes>
           <Route path="/recruiter/jobs/:jobId" element={<JobDetailPage />} />
+          <Route
+            path="/recruiter/jobs/:jobId/candidates/:candidateJobId"
+            element={<div data-testid="candidate-profile-page">Candidate profile</div>}
+          />
           <Route path="/recruiter/jobs" element={<div>Jobs list</div>} />
         </Routes>
       </PageTitleProvider>,
@@ -544,7 +611,8 @@ describe('JobDetailPage', () => {
     });
 
     expect(await screen.findByText('Build APIs')).toBeInTheDocument();
-    expect(screen.getByText(/Experience:/)).toBeInTheDocument();
+    expect(screen.getByText('Job description')).toBeInTheDocument();
+    expect(screen.getByText('Pipeline summary')).toBeInTheDocument();
   });
 
   it('shows not found when job is missing', async () => {
@@ -562,7 +630,7 @@ describe('JobDetailPage', () => {
     renderDetail();
 
     await screen.findByText('Build APIs');
-    await user.click(screen.getByRole('button', { name: 'Manage candidates' }));
+    await user.click(screen.getByRole('button', { name: 'Candidates' }));
 
     await waitFor(() => expect(screen.getByTestId('candidate-table')).toBeInTheDocument());
     expect(listCandidatesRequest).toHaveBeenCalled();
@@ -577,7 +645,7 @@ describe('JobDetailPage', () => {
     expect(screen.getByRole('alertdialog')).toBeInTheDocument();
 
     updateJobRequest.mockResolvedValueOnce({ data: { data: { ...jobFixture, isActive: false } } });
-    await user.click(screen.getByRole('button', { name: 'Deactivate' }));
+    await user.click(screen.getByRole('button', { name: 'Close job' }));
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Job deactivated'));
 
     await user.click(screen.getByRole('button', { name: 'Activate job' }));
@@ -607,7 +675,7 @@ describe('JobDetailPage', () => {
     await screen.findByTestId('job-detail-header');
     await user.click(screen.getByRole('button', { name: 'Deactivate job' }));
     updateJobRequest.mockRejectedValueOnce({ response: { data: { message: 'Cannot deactivate' } } });
-    await user.click(screen.getByRole('button', { name: 'Deactivate' }));
+    await user.click(screen.getByRole('button', { name: 'Close job' }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Cannot deactivate'));
   });
 
@@ -625,7 +693,7 @@ describe('JobDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Delete candidate' }));
     await user.click(screen.getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Candidate removed'));
-    await waitFor(() => expect(screen.getByText('Selected: 0')).toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByTestId('candidates-selection-bar')).toBeNull());
 
     listCandidatesRequest.mockResolvedValueOnce({
       data: { data: [candidateFixture], pagination: { page: 1, totalPages: 1 } },
@@ -641,32 +709,28 @@ describe('JobDetailPage', () => {
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
 
     await screen.findByTestId('candidate-table');
-    await user.click(screen.getByRole('button', { name: 'Toggle all' }));
+    await user.click(screen.getByRole('button', { name: 'Toggle one' }));
     expect(screen.getByText('Selected: 1')).toBeInTheDocument();
 
     selectCandidatesRequest.mockResolvedValueOnce({ data: { data: { selected: 1 } } });
-    await user.click(screen.getByRole('button', { name: 'Select for outreach' }));
+    await user.click(screen.getByRole('button', { name: 'Invite to AI interview' }));
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith('1 candidate(s) selected — outreach email queued')
+      expect(toast.success).toHaveBeenCalledWith('1 candidate(s) invited — outreach email queued')
     );
 
-    await user.click(screen.getByRole('button', { name: 'Toggle all' }));
+    await user.click(screen.getByRole('button', { name: 'Toggle one' }));
     selectCandidatesRequest.mockRejectedValueOnce({ response: { data: { message: 'Select failed' } } });
-    await user.click(screen.getByRole('button', { name: 'Select for outreach' }));
+    await user.click(screen.getByRole('button', { name: 'Invite to AI interview' }));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Select failed'));
   });
 
-  it('opens and closes interview drawer', async () => {
+  it('navigates to candidate profile from View', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
 
     await screen.findByTestId('candidate-table');
     await user.click(screen.getByRole('button', { name: 'View interview' }));
-    expect(screen.getByTestId('interview-drawer')).toBeInTheDocument();
-    expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Close drawer' }));
-    expect(screen.queryByTestId('interview-drawer')).toBeNull();
+    expect(await screen.findByTestId('candidate-profile-page')).toBeInTheDocument();
   });
 
   it('upload resume failure', async () => {
@@ -685,7 +749,7 @@ describe('JobDetailPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Upload resume' }));
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith('Resume already on file — linked to this job')
+      expect(toast.success).toHaveBeenCalledWith('1 resume(s) already on file — linked to this job')
     );
     expect(getResumeStatusRequest).not.toHaveBeenCalled();
   });
