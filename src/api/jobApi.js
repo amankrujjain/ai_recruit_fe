@@ -6,7 +6,15 @@ export const getJobRequest = (jobId) => apiClient.get(`/jobs/${jobId}`);
 
 export const createJobRequest = (payload) => apiClient.post('/jobs', payload);
 
-export const updateJobRequest = (jobId, payload) => apiClient.patch(`/jobs/${jobId}`, payload);
+export const updateJobRequest = (jobId, payload) => {
+  if (payload?.closeJob) {
+    return closeJobRequest(jobId, { reason: payload.reason });
+  }
+  return apiClient.patch(`/jobs/${jobId}`, payload);
+};
+
+export const closeJobRequest = (jobId, payload = {}) =>
+  apiClient.post(`/jobs/${jobId}/close`, payload);
 
 export const listCandidatesRequest = (jobId, params) =>
   apiClient.get(`/jobs/${jobId}/candidates`, { params });

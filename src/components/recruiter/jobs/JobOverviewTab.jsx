@@ -3,11 +3,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 
 const DEFAULT_MAX_AI_ROUNDS = 3;
-const AI_ROUND_LABELS = [
-  'Round 1 — AI screen',
-  'Round 2 — Technical',
-  'Round 3 — Culture fit',
-];
 
 function PipelineRow({ label, value, valueClassName }) {
   return (
@@ -28,18 +23,25 @@ export function JobOverviewTab({ job, stats, matchThreshold = 80 }) {
   const callsCompleted = stats?.callsCompleted ?? 0;
   const threshold = stats?.matchThreshold ?? matchThreshold;
 
-  const rounds = AI_ROUND_LABELS.slice(0, DEFAULT_MAX_AI_ROUNDS).map((label, index) => {
+  const configuredRounds = job?.rounds?.length
+    ? job.rounds
+    : ((job?.aiRounds?.length ? job.aiRounds : [{ name: 'AI screening', roundType: 'AI' }]).map((round, index) => ({
+      ...round,
+      roundOrder: index + 1,
+      name: round.name || `Round ${index + 1}`,
+    })));
+  const rounds = configuredRounds.slice(0, DEFAULT_MAX_AI_ROUNDS).map((round, index) => {
     if (index === 0) {
       const active = callsCompleted > 0 || (stats?.callsScheduled ?? 0) > 0;
       return {
-        label,
+        label: `Round ${round.roundOrder || index + 1} — ${round.name}`,
         completed: callsCompleted,
         status: active ? 'Active' : 'Not started',
         active,
       };
     }
     return {
-      label,
+      label: `Round ${round.roundOrder || index + 1} — ${round.name}`,
       completed: 0,
       status: 'Not started',
       active: false,
@@ -78,7 +80,7 @@ export function JobOverviewTab({ job, stats, matchThreshold = 80 }) {
         <div className="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/70 px-4 py-3 text-sm text-slate-700">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" aria-hidden />
           <p>
-            This org allows up to {DEFAULT_MAX_AI_ROUNDS} AI rounds. You can stop after any scored
+            This job has {rounds.length || DEFAULT_MAX_AI_ROUNDS} configured AI round(s). You can stop after any scored
             round and advance candidates manually.
           </p>
         </div>

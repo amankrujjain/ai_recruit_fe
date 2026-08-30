@@ -75,6 +75,8 @@ export function RecruiterOverview() {
           <DashboardStatRow
             jobs={overview?.jobs}
             invitedThisWeek={overview?.invitedThisWeek}
+            funnel={overview?.funnel}
+            todaysInterviews={overview?.todaysInterviews}
           />
         </div>
         <div className="space-y-4">

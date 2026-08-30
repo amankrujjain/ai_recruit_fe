@@ -145,13 +145,74 @@ function RoleDetailsFields({ form, setForm }) {
 
 function RequirementsFields({ form, setForm }) {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const updateRound = (index, key, value) => setForm((f) => ({
+    ...f,
+    aiRounds: f.aiRounds.map((round, i) => (i === index ? { ...round, [key]: value } : round)),
+  }));
+  const addRound = () => setForm((f) => ({
+    ...f,
+    aiRounds: [
+      ...f.aiRounds,
+      { name: `Round ${f.aiRounds.length + 1}`, roundType: 'AI', config: {} },
+    ],
+  }));
+  const removeRound = (index) => setForm((f) => ({
+    ...f,
+    aiRounds: f.aiRounds.filter((_, i) => i !== index),
+  }));
 
   return (
     <div className="space-y-5">
-      <p className="rounded-lg bg-brand-50 px-3 py-2.5 text-xs text-slate-600">
-        AI round configuration will land here next. For now, add the description and skills
-        required to publish this job.
-      </p>
+      <div className="rounded-lg bg-brand-50 px-3 py-2.5 text-xs text-slate-600">
+        Configure the screening rounds and the minimum match score used to determine eligibility.
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-border p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">AI rounds</h3>
+            <p className="mt-0.5 text-xs text-muted">Candidates progress through these rounds in order.</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={addRound}>Add round</Button>
+        </div>
+        <div className="space-y-2">
+          {form.aiRounds.map((round, index) => (
+            <div key={`${round.name}-${index}`} className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                aria-label={`Round ${index + 1} name`}
+                value={round.name}
+                onChange={(e) => updateRound(index, 'name', e.target.value)}
+              />
+              <Select
+                aria-label={`Round ${index + 1} type`}
+                value={round.roundType}
+                onChange={(e) => updateRound(index, 'roundType', e.target.value)}
+              >
+                <option value="AI">AI screening</option>
+                <option value="HUMAN">Human interview</option>
+              </Select>
+              {form.aiRounds.length > 1 && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => removeRound(index)}>
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="aiMatchThreshold">Minimum match score (%)</Label>
+        <Input
+          id="aiMatchThreshold"
+          type="number"
+          min={0}
+          max={100}
+          value={form.aiMatchThreshold}
+          onChange={set('aiMatchThreshold')}
+        />
+        <p className="text-xs text-muted">Candidates below this score cannot be selected for outreach.</p>
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="jobDescription">Description</Label>
@@ -192,6 +253,16 @@ function ReviewSummary({ form }) {
       <div>
         <dt className="text-muted">Job title</dt>
         <dd className="mt-0.5 font-medium text-foreground">{form.jobTitle || '—'}</dd>
+      </div>
+      <div>
+        <dt className="text-muted">AI rounds</dt>
+        <dd className="mt-0.5 font-medium text-foreground">
+          {form.aiRounds?.map((round) => round.name).join(', ') || '—'}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-muted">Minimum match score</dt>
+        <dd className="mt-0.5 font-medium text-foreground">{form.aiMatchThreshold}%</dd>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -250,7 +321,7 @@ const STEP_COPY = {
   },
   2: {
     title: 'AI round setup',
-    subtitle: 'Step 2 of 3 — Add requirements (AI rounds coming soon).',
+    subtitle: 'Step 2 of 3 — Configure requirements and AI rounds.',
   },
   3: {
     title: 'Review & publish',

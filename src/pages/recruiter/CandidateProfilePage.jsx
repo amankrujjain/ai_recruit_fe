@@ -24,7 +24,8 @@ import { getCandidateRequest } from '@/api/jobApi';
 import {
   getCallRecordsRequest,
   getScorecardRequest,
-  updateCandidateStatusRequest,
+  createDecisionRequest,
+  inviteNextRoundRequest,
 } from '@/api/recruitmentApi';
 import { CandidateStatus } from '@/lib/candidateStatus';
 import { fetchJob, selectJobs } from '@/store/slices/jobsSlice';
@@ -87,10 +88,17 @@ export function CandidateProfilePage() {
   const hasRound1Score = ROUND_HAS_SCORE(evaluation);
 
   const applyStatus = async (status, successMessage) => {
+    const decisionByStatus = {
+      [CandidateStatus.SHORTLISTED]: 'SELECTED',
+      [CandidateStatus.REJECTED_MANUALLY]: 'REJECTED',
+      [CandidateStatus.HIRED]: 'HIRED',
+    };
     setSaving(true);
     try {
-      const { data } = await updateCandidateStatusRequest(candidateJobId, status);
-      setCandidateJob((prev) => (prev ? { ...prev, status: data?.data?.status || status } : prev));
+      await createDecisionRequest(candidateJobId, {
+        decision: decisionByStatus[status],
+      });
+      setCandidateJob((prev) => (prev ? { ...prev, status } : prev));
       toast.success(successMessage);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update status');
@@ -102,6 +110,20 @@ export function CandidateProfilePage() {
 
   const handleConfirm = async () => {
     if (!confirm) return;
+    if (confirm.type === 'invite-next') {
+      setSaving(true);
+      try {
+        await inviteNextRoundRequest(candidateJobId, confirm.roundId);
+        toast.success('Next-round invite queued');
+        await load();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to invite candidate');
+      } finally {
+        setSaving(false);
+        setConfirm(null);
+      }
+      return;
+    }
     await applyStatus(confirm.status, confirm.successMessage);
   };
 
@@ -156,6 +178,24 @@ export function CandidateProfilePage() {
 
       <CandidateProfileFooter
         saving={saving}
+        onInviteNext={() => {
+          const currentRound = candidateJob.rounds?.[candidateJob.rounds.length - 1]?.jobRound;
+          const nextRound = job?.rounds?.find(
+            (round) => round.roundOrder > (currentRound?.roundOrder || 1)
+          );
+          if (!nextRound) {
+            toast.error('No next round is configured for this job');
+            return;
+          }
+          setConfirm({
+            type: 'invite-next',
+            roundId: nextRound.jobRoundId,
+            title: `Invite to ${nextRound.name}?`,
+            description: 'This will queue the configured outreach for the next recruitment round.',
+            confirmLabel: 'Invite to next round',
+            successMessage: 'Next-round invite queued',
+          });
+        }}
         onMarkSelected={() =>
           setConfirm({
             status: CandidateStatus.SHORTLISTED,

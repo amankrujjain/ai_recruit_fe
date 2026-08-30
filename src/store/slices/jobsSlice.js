@@ -83,6 +83,19 @@ export const activateJob = createAsyncThunk(
   }
 );
 
+export const closeJob = createAsyncThunk(
+  'jobs/close',
+  async ({ jobId, reason }, { rejectWithValue }) => {
+    try {
+      const request = updateJobRequest(jobId, { closeJob: true, reason });
+      const { data } = await request;
+      return data.data;
+    } catch (err) {
+      return rejectWithValue(getApiErrorMessage(err, 'Failed to close job'));
+    }
+  }
+);
+
 const jobsSlice = createSlice({
   name: 'jobs',
   initialState: {
@@ -130,7 +143,14 @@ const jobsSlice = createSlice({
         s.items = s.items.map((j) =>
           (j.jobId === a.payload.jobId ? a.payload : j)
         );
-      });
+      })
+      .addCase(closeJob.fulfilled, (s, a) => {
+        s.saving = false;
+        s.current = a.payload;
+        s.items = s.items.map((j) => (j.jobId === a.payload.jobId ? a.payload : j));
+      })
+      .addCase(closeJob.pending, (s) => { s.saving = true; })
+      .addCase(closeJob.rejected, (s, a) => { s.saving = false; s.error = a.payload; });
   },
 });
 

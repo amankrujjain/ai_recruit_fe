@@ -13,6 +13,10 @@ export const emptyJobForm = {
   employmentType: EmploymentType.FULL_TIME,
   mandatorySkills: [],
   preferredSkills: [],
+  aiMatchThreshold: 80,
+  aiRounds: [
+    { name: 'AI screening', roundType: 'AI', config: {} },
+  ],
 };
 
 export function jobToForm(job) {
@@ -28,6 +32,10 @@ export function jobToForm(job) {
     employmentType: job.employmentType || EmploymentType.FULL_TIME,
     mandatorySkills: job.mandatorySkills || [],
     preferredSkills: job.preferredSkills || [],
+    aiMatchThreshold: job.aiMatchThreshold ?? 80,
+    aiRounds: job.aiRounds?.length
+      ? job.aiRounds
+      : [{ name: 'AI screening', roundType: 'AI', config: {} }],
   };
 }
 
@@ -43,6 +51,8 @@ export function formToPayload(form) {
     employmentType: form.employmentType,
     mandatorySkills: form.mandatorySkills,
     preferredSkills: form.preferredSkills,
+    aiMatchThreshold: Number(form.aiMatchThreshold),
+    aiRounds: form.aiRounds,
   };
 }
 
@@ -72,5 +82,12 @@ export function validateRequirements(form) {
     return 'Description must be at least 10 characters';
   }
   if (!form.mandatorySkills?.length) return 'Add at least one mandatory skill';
+  const threshold = Number(form.aiMatchThreshold);
+  if (Number.isNaN(threshold) || threshold < 0 || threshold > 100) {
+    return 'Minimum match score must be between 0 and 100';
+  }
+  if (!form.aiRounds?.length || form.aiRounds.some((round) => !round.name?.trim())) {
+    return 'Add a name for every AI round';
+  }
   return null;
 }

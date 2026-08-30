@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { PaginationBar } from '@/components/super-admin/PaginationBar';
 import { JobDetailHeader } from '@/components/recruiter/jobs/JobDetailHeader';
 import { JobOverviewTab } from '@/components/recruiter/jobs/JobOverviewTab';
+import { JobWorkflowTab } from '@/components/recruiter/jobs/JobWorkflowTab';
 import { FileUploadZone } from '@/components/recruiter/candidates/FileUploadZone';
 import { CandidateTable } from '@/components/recruiter/candidates/CandidateTable';
 import { CandidatesEligibilityBar } from '@/components/recruiter/candidates/CandidatesEligibilityBar';
@@ -27,7 +28,7 @@ import {
 import { getResumeStatusRequest } from '@/api/jobApi';
 import {
   fetchJob,
-  deactivateJob,
+  closeJob,
   activateJob,
   selectJobs,
   clearCurrentJob,
@@ -65,7 +66,15 @@ export function JobDetailPage() {
   const dispatch = useDispatch();
   const { current: job, detailLoading, saving } = useSelector(selectJobs);
   usePageTitle(job?.jobTitle || 'Job');
-  const { items, pagination, loading, uploading, selecting, deletingId } = useSelector(selectCandidatesState);
+  const {
+    items,
+    pagination,
+    eligibleCount: serverEligibleCount,
+    loading,
+    uploading,
+    selecting,
+    deletingId,
+  } = useSelector(selectCandidatesState);
   const { stats } = useSelector(selectRecruitment);
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
@@ -78,8 +87,13 @@ export function JobDetailPage() {
   pageRef.current = page;
 
   const loadCandidates = useCallback(() => {
-    return dispatch(fetchCandidates({ jobId, page: pageRef.current, sortBy: 'overallMatch' }));
-  }, [dispatch, jobId]);
+    return dispatch(fetchCandidates({
+      jobId,
+      page: pageRef.current,
+      sortBy: 'overallMatch',
+      eligibilityThreshold,
+    }));
+  }, [dispatch, jobId, eligibilityThreshold]);
 
   const stopPolling = useCallback(() => {
     if (stopPollRef.current) {
@@ -214,9 +228,9 @@ export function JobDetailPage() {
 
   const handleDeactivate = () => {
     setConfirmDialog({
-      type: 'deactivate',
+      type: 'close-job',
       title: 'Close this job?',
-      description: 'It will no longer accept new candidates. You can still view existing ones.',
+      description: 'It will stop accepting new candidates. Existing candidate records will remain available.',
       confirmLabel: 'Close job',
       variant: 'danger',
     });
@@ -241,11 +255,11 @@ export function JobDetailPage() {
   const handleConfirm = async () => {
     if (!confirmDialog) return;
 
-    if (confirmDialog.type === 'deactivate') {
-      const result = await dispatch(deactivateJob(jobId));
+    if (confirmDialog.type === 'close-job') {
+      const result = await dispatch(closeJob({ jobId }));
       closeConfirm();
-      if (deactivateJob.fulfilled.match(result)) toast.success('Job deactivated');
-      else toast.error(result.payload || 'Failed to deactivate');
+      if (closeJob.fulfilled.match(result)) toast.success('Job deactivated');
+      else toast.error(result.payload || 'Failed to close job');
       return;
     }
 
@@ -363,7 +377,7 @@ const handleActivate = () => {
   };
 
   const eligibleItems = items.filter((row) => isCandidateEligible(row, eligibilityThreshold));
-  const eligibleCount = countEligible(items, eligibilityThreshold);
+  const eligibleCount = serverEligibleCount ?? countEligible(items, eligibilityThreshold);
   const eligibleIds = eligibleItems.map((row) => row.candidateJobId);
   const selectAllEligibleChecked =
     eligibleIds.length > 0 && eligibleIds.every((id) => selectedIds.has(id));
@@ -493,7 +507,7 @@ return (
               threshold={eligibilityThreshold}
               onThresholdChange={setEligibilityThreshold}
               eligibleCount={eligibleCount}
-              totalCount={items.length}
+              totalCount={pagination?.total ?? items.length}
             />
 
             <CandidatesToolbar
@@ -542,12 +556,7 @@ return (
         )}
 
         {(tab === 'outreach' || tab === 'interviews' || tab === 'decisions') && (
-          <Card className="rounded-xl border-border shadow-none">
-            <CardContent className="py-12 text-center">
-              <p className="text-sm font-medium text-foreground capitalize">{tab}</p>
-              <p className="mt-1 text-sm text-muted">This section is coming soon.</p>
-            </CardContent>
-          </Card>
+          <JobWorkflowTab jobId={jobId} type={tab} />
         )}
       </div>
 

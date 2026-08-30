@@ -2,7 +2,11 @@ import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ExternalLink, FileAudio, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { getCallRecordsRequest, getScorecardRequest } from '@/api/recruitmentApi';
+import {
+  createDecisionRequest,
+  getCallRecordsRequest,
+  getScorecardRequest,
+} from '@/api/recruitmentApi';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import {
@@ -135,8 +139,21 @@ export function InterviewScorecardDrawer({
   const [loading, setLoading] = useState(false);
   const [scorecard, setScorecard] = useState(null);
   const [callRecords, setCallRecords] = useState([]);
+  const [decisionLoading, setDecisionLoading] = useState(false);
 
   const close = () => onOpenChange?.(false);
+
+  const saveDecision = async (decision) => {
+    setDecisionLoading(true);
+    try {
+      await createDecisionRequest(candidateJobId, { decision });
+      toast.success(decision === 'REJECTED' ? 'Candidate rejected' : 'Candidate marked selected');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save decision');
+    } finally {
+      setDecisionLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!open || !candidateJobId) return undefined;
@@ -403,9 +420,31 @@ export function InterviewScorecardDrawer({
         </div>
 
         <footer className="border-t border-border px-5 py-3">
-          <Button type="button" variant="outline" size="sm" onClick={close}>
-            Close
-          </Button>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={decisionLoading}
+                onClick={() => saveDecision('SELECTED')}
+              >
+                Mark selected
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                disabled={decisionLoading}
+                onClick={() => saveDecision('REJECTED')}
+              >
+                Reject
+              </Button>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={close}>
+              Close
+            </Button>
+          </div>
         </footer>
       </aside>
     </div>,
