@@ -11,15 +11,14 @@ export function CandidateProfileFooter({
     <div className="sticky bottom-0 z-20 border-t border-border bg-card/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="mx-auto flex w-full max-w-8xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted">
-          Org allows 3 rounds — invite to next when ready. Multi-round invites coming soon.
+          Invite to the next configured round when the candidate is ready.
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            disabled
-            title="Multi-round invites are not available yet"
+            disabled={saving || !onInviteNext}
             onClick={onInviteNext}
           >
             Invite to next round

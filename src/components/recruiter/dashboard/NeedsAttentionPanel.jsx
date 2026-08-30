@@ -47,7 +47,9 @@ function ScorecardReviewCard({ items }) {
                 </div>
               </div>
               <Button variant="ghost" size="sm" asChild>
-                <Link to={`/recruiter/jobs/${item.jobId}?tab=candidates`}>Open scorecard</Link>
+                <Link to={`/recruiter/jobs/${item.jobId}/candidates/${item.candidateJobId}`}>
+                  Open scorecard
+                </Link>
               </Button>
             </li>
           ))}
@@ -119,7 +121,9 @@ function NoShowCard({ items, onReject, actionLoading }) {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/recruiter/jobs/${item.jobId}?tab=candidates`}>View profile</Link>
+                <Link to={`/recruiter/jobs/${item.jobId}/candidates/${item.candidateJobId}`}>
+                  View profile
+                </Link>
               </Button>
               <button
                 type="button"

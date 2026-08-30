@@ -11,7 +11,11 @@ export const fetchCandidates = createAsyncThunk(
   async ({ jobId, ...params }, { rejectWithValue }) => {
     try {
       const { data } = await listCandidatesRequest(jobId, params);
-      return { items: data.data, pagination: data.pagination };
+      return {
+        items: data.data,
+        pagination: data.pagination,
+        eligibleCount: data.eligibleCount ?? null,
+      };
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Failed to load candidates');
     }
@@ -71,6 +75,7 @@ const candidatesSlice = createSlice({
   initialState: {
     items: [],
     pagination: null,
+    eligibleCount: null,
     loading: false,
     uploading: false,
     selecting: false,
@@ -81,6 +86,7 @@ const candidatesSlice = createSlice({
     clearCandidates: (state) => {
       state.items = [];
       state.pagination = null;
+      state.eligibleCount = null;
     },
   },
   extraReducers: (builder) => {
@@ -90,6 +96,7 @@ const candidatesSlice = createSlice({
         s.loading = false;
         s.items = a.payload.items;
         s.pagination = a.payload.pagination;
+        s.eligibleCount = a.payload.eligibleCount;
       })
       .addCase(fetchCandidates.rejected, (s, a) => { s.loading = false; s.error = a.payload; })
       // .addCase(uploadExcel.pending, (s) => { s.uploading = true; })
