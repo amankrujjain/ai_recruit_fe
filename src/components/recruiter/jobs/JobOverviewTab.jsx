@@ -1,6 +1,7 @@
 import { Info } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
+import { aiRoundTypeLabels } from '@/lib/aiRoundType';
 
 const DEFAULT_MAX_AI_ROUNDS = 3;
 
@@ -25,16 +26,19 @@ export function JobOverviewTab({ job, stats, matchThreshold = 80 }) {
 
   const configuredRounds = job?.rounds?.length
     ? job.rounds
-    : ((job?.aiRounds?.length ? job.aiRounds : [{ name: 'AI screening', roundType: 'AI' }]).map((round, index) => ({
+    : ((job?.aiRounds?.length ? job.aiRounds : [{ name: 'AI Call', roundType: 'AI_CALL', minimumPassScore: 70 }]).map((round, index) => ({
       ...round,
       roundOrder: index + 1,
       name: round.name || `Round ${index + 1}`,
     })));
   const rounds = configuredRounds.slice(0, DEFAULT_MAX_AI_ROUNDS).map((round, index) => {
+    const typeLabel = aiRoundTypeLabels[round.roundType] || round.roundType;
+    const passScore = round.minimumPassScore ?? 70;
     if (index === 0) {
       const active = callsCompleted > 0 || (stats?.callsScheduled ?? 0) > 0;
       return {
         label: `Round ${round.roundOrder || index + 1} — ${round.name}`,
+        detail: `${typeLabel} · pass ${passScore}%`,
         completed: callsCompleted,
         status: active ? 'Active' : 'Not started',
         active,
@@ -42,6 +46,7 @@ export function JobOverviewTab({ job, stats, matchThreshold = 80 }) {
     }
     return {
       label: `Round ${round.roundOrder || index + 1} — ${round.name}`,
+      detail: `${typeLabel} · pass ${passScore}%`,
       completed: 0,
       status: 'Not started',
       active: false,
@@ -117,6 +122,7 @@ export function JobOverviewTab({ job, stats, matchThreshold = 80 }) {
                 >
                   <div>
                     <p className="text-sm font-medium text-foreground">{round.label}</p>
+                    {round.detail ? <p className="text-xs text-muted">{round.detail}</p> : null}
                     <p className="text-xs text-muted">{round.completed} completed</p>
                   </div>
                   {round.active ? (

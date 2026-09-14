@@ -54,7 +54,60 @@ describe('JobWorkflowTab', () => {
 
     expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument();
     expect(screen.getByText('Email sent')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Refresh' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Refresh list' })).toBeDisabled();
     expect(getOutreachRequest).toHaveBeenCalledWith({ jobId: 'job-1' });
+  });
+
+  it('enables refresh list only after selecting more than one interview', async () => {
+    const user = userEvent.setup();
+    getInterviewsRequest.mockResolvedValue({
+      data: {
+        data: [
+          {
+            callScheduleId: 'cs-1',
+            status: 'SCHEDULED',
+            scheduledAt: '2026-09-14T10:42:00.000Z',
+            jobRound: { name: 'Round 1' },
+            candidateJob: {
+              candidateJobId: 'cj-1',
+              candidate: { name: 'Shantanu Kumar' },
+            },
+          },
+          {
+            callScheduleId: 'cs-2',
+            status: 'COMPLETED',
+            scheduledAt: '2026-09-13T10:42:00.000Z',
+            jobRound: { name: 'Round 1' },
+            candidateJob: {
+              candidateJobId: 'cj-2',
+              candidate: { name: 'Grace Hopper' },
+              scorecards: [{ scorecardId: 'sc-1' }],
+            },
+          },
+        ],
+      },
+    });
+
+    renderTab('interviews');
+
+    expect(await screen.findByText('Shantanu Kumar')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Refresh' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View profile' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Refresh Shantanu Kumar' })).toBeInTheDocument();
+
+    const refreshList = screen.getByRole('button', { name: 'Refresh list' });
+    expect(refreshList).toBeDisabled();
+
+    await user.click(screen.getByLabelText('Select Shantanu Kumar'));
+    expect(refreshList).toBeDisabled();
+
+    await user.click(screen.getByLabelText('Select Grace Hopper'));
+    expect(refreshList).toBeEnabled();
+
+    const callsBefore = getInterviewsRequest.mock.calls.length;
+    await user.click(refreshList);
+    await waitFor(() => expect(getInterviewsRequest.mock.calls.length).toBeGreaterThan(callsBefore));
   });
 
   it('renders an empty interview state', async () => {

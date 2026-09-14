@@ -75,6 +75,9 @@ describe('api domain modules', () => {
     job.listJobsRequest({ page: 1 });
     expect(apiClient.get).toHaveBeenCalledWith('/jobs', { params: { page: 1 } });
 
+    job.listJobsRequest({ page: 1, isActive: false });
+    expect(apiClient.get).toHaveBeenCalledWith('/jobs', { params: { page: 1, isActive: false } });
+
     job.getJobRequest('j1');
     expect(apiClient.get).toHaveBeenCalledWith('/jobs/j1');
 
@@ -83,6 +86,9 @@ describe('api domain modules', () => {
 
     job.updateJobRequest('j1', { isActive: false });
     expect(apiClient.patch).toHaveBeenCalledWith('/jobs/j1', { isActive: false });
+
+    job.deleteJobRequest('j1');
+    expect(apiClient.delete).toHaveBeenCalledWith('/jobs/j1');
 
     job.listCandidatesRequest('j1', { page: 2 });
     expect(apiClient.get).toHaveBeenCalledWith('/jobs/j1/candidates', {

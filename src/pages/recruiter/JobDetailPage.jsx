@@ -520,9 +520,23 @@ return (
               <CardContent className="p-0 pt-0">
                 <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                   <p className="text-xs text-muted">
-                    List updates once parsing finishes (match scores may land a few seconds later)
+                    {selectedIds.size > 1
+                      ? `${selectedIds.size} selected — refresh list available`
+                      : selectedIds.size === 1
+                        ? 'Use the row Refresh button, or select more than one for Refresh list'
+                        : 'Select more than one candidate to enable Refresh list'}
                   </p>
-                  <Button variant="outline" size="sm" onClick={loadCandidates} disabled={loading}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadCandidates}
+                    disabled={loading || selectedIds.size <= 1}
+                    title={
+                      selectedIds.size > 1
+                        ? 'Refresh selected candidates'
+                        : 'Select more than one candidate to refresh the list'
+                    }
+                  >
                     Refresh list
                   </Button>
                 </div>
@@ -537,6 +551,7 @@ return (
                     onDelete={handleDeleteCandidate}
                     onViewInterview={handleViewInterview}
                     onInviteOne={handleInviteOne}
+                    onRefreshRow={loadCandidates}
                     invitingId={invitingId}
                   />
                 </div>

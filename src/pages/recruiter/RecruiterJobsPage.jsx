@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'sonner';
 import { usePageTitle } from '@/context/PageTitleContext';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { PaginationBar } from '@/components/super-admin/PaginationBar';
 import { JobTable } from '@/components/recruiter/jobs/JobTable';
 import { JobsListToolbar } from '@/components/recruiter/jobs/JobsListToolbar';
 import { PageContentSkeleton } from '@/components/layout/PageContentSkeleton';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { usePageBootstrap } from '@/hooks/usePageBootstrap';
-import { fetchJobs, selectJobs } from '@/store/slices/jobsSlice';
+import { filterJobsByStatusFilter } from '@/lib/jobStatus';
+import { deleteJob, fetchJobs, selectJobs } from '@/store/slices/jobsSlice';
 
 function statusFilterToIsActive(statusFilter) {
   if (statusFilter === 'active') return true;
@@ -22,10 +25,11 @@ function statusFilterToIsActive(statusFilter) {
 export function RecruiterJobsPage() {
   usePageTitle('Jobs');
   const dispatch = useDispatch();
-  const { items, pagination, summary, loading } = useSelector(selectJobs);
+  const { items, pagination, summary, loading, deletingJobId } = useSelector(selectJobs);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const debouncedSearch = useDebouncedValue(search);
 
   useEffect(() => {
@@ -43,8 +47,28 @@ export function RecruiterJobsPage() {
           isActive,
         })
       ),
-    [dispatch, page, debouncedSearch, isActive]
+    [dispatch, page, debouncedSearch, statusFilter]
   );
+
+  const visibleItems = useMemo(
+    () => filterJobsByStatusFilter(items, statusFilter),
+    [items, statusFilter]
+  );
+
+  const handleDeleteRequest = (job) => {
+    setDeleteTarget(job);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    const result = await dispatch(deleteJob(deleteTarget.jobId));
+    setDeleteTarget(null);
+    if (deleteJob.fulfilled.match(result)) {
+      toast.success('Job deleted');
+    } else {
+      toast.error(result.payload || 'Failed to delete job');
+    }
+  };
 
   if (booting) {
     return <PageContentSkeleton />;
@@ -78,7 +102,14 @@ export function RecruiterJobsPage() {
 
       <Card className="rounded-xl border-border shadow-none">
         <CardContent className="p-0">
-          <JobTable items={items} loading={loading} />
+          <JobTable
+            items={visibleItems}
+            loading={loading}
+            statusFilter={statusFilter}
+            hasSearch={Boolean(debouncedSearch?.trim())}
+            onDelete={handleDeleteRequest}
+            deletingJobId={deletingJobId}
+          />
           {pagination?.totalPages > 1 && (
             <div className="border-t border-border px-5 py-3">
               <PaginationBar pagination={pagination} onPageChange={setPage} />
@@ -86,6 +117,27 @@ export function RecruiterJobsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete job?"
+        description={
+          deleteTarget
+            ? `Are you sure you want to delete "${deleteTarget.jobTitle}"? This will remove the job and its pipeline data. This action cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={Boolean(deletingJobId)}
+        onOpenChange={(open) => {
+          if (!open && !deletingJobId) setDeleteTarget(null);
+        }}
+        onCancel={() => {
+          if (!deletingJobId) setDeleteTarget(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Mail, RefreshCw, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -37,6 +37,11 @@ function displayStatus(value) {
   return String(value || 'PENDING').replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
 }
 
+function rowSelectId(type, row) {
+  if (type === 'interviews') return row.callScheduleId;
+  return row.candidateJobId;
+}
+
 function CandidateLink({ candidateJob, jobId }) {
   const candidate = candidateJob?.candidate;
   const name = candidate?.name || 'Unknown candidate';
@@ -67,25 +72,65 @@ function EmptyState({ type }) {
   );
 }
 
-function OutreachTable({ rows, jobId }) {
+function SelectCell({ checked, onChange, label }) {
+  return (
+    <td className="px-4 py-3">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        aria-label={label}
+        className="rounded border-border"
+      />
+    </td>
+  );
+}
+
+function RefreshCell({ onRefresh, label }) {
+  return (
+    <td className="px-4 py-3">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onRefresh}
+        title={label}
+        aria-label={label}
+      >
+        <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+      </Button>
+    </td>
+  );
+}
+
+function OutreachTable({ rows, jobId, selectedIds, onToggle, onRefreshRow }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-left text-sm">
+      <table className="w-full min-w-[820px] text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-muted">
           <tr>
+            <th className="w-10 px-4 py-3"><span className="sr-only">Select</span></th>
             <th className="px-4 py-3 font-semibold">Candidate</th>
             <th className="px-4 py-3 font-semibold">Round</th>
             <th className="px-4 py-3 font-semibold">Channel</th>
             <th className="px-4 py-3 font-semibold">Status</th>
             <th className="px-4 py-3 font-semibold">Sent</th>
+            <th className="px-4 py-3 font-semibold">Refresh</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((row) => {
+            const id = row.candidateJobId;
             const record = row.outreachRecords?.[0];
             const round = record?.round || row.rounds?.find((item) => item.jobRound)?.jobRound;
+            const name = row.candidate?.name || 'candidate';
             return (
-              <tr key={row.candidateJobId} className="hover:bg-slate-50/70">
+              <tr key={id} className="hover:bg-slate-50/70">
+                <SelectCell
+                  checked={selectedIds.has(id)}
+                  onChange={() => onToggle(id)}
+                  label={`Select ${name}`}
+                />
                 <td className="px-4 py-3"><CandidateLink candidateJob={row} jobId={jobId} /></td>
                 <td className="px-4 py-3 text-muted">{round?.name || 'Round 1'}</td>
                 <td className="px-4 py-3 text-muted">{record?.channel || 'EMAIL'}</td>
@@ -95,6 +140,7 @@ function OutreachTable({ rows, jobId }) {
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-muted">{formatDate(record?.emailSentAt || record?.createdAt)}</td>
+                <RefreshCell onRefresh={() => onRefreshRow(id)} label={`Refresh ${name}`} />
               </tr>
             );
           })}
@@ -104,25 +150,34 @@ function OutreachTable({ rows, jobId }) {
   );
 }
 
-function InterviewsTable({ rows, jobId, onRefresh }) {
+function InterviewsTable({ rows, jobId, selectedIds, onToggle, onRefreshRow }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[820px] text-left text-sm">
+      <table className="w-full min-w-[900px] text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-muted">
           <tr>
+            <th className="w-10 px-4 py-3"><span className="sr-only">Select</span></th>
             <th className="px-4 py-3 font-semibold">Candidate</th>
             <th className="px-4 py-3 font-semibold">Round</th>
             <th className="px-4 py-3 font-semibold">Scheduled for</th>
             <th className="px-4 py-3 font-semibold">Status</th>
             <th className="px-4 py-3 font-semibold">Action</th>
+            <th className="px-4 py-3 font-semibold">Refresh</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((row) => {
+            const id = row.callScheduleId;
             const cj = row.candidateJob;
+            const name = cj?.candidate?.name || 'candidate';
             const hasScorecard = Boolean(row.callRecord?.scorecard || cj?.scorecards?.length);
             return (
-              <tr key={row.callScheduleId} className="hover:bg-slate-50/70">
+              <tr key={id} className="hover:bg-slate-50/70">
+                <SelectCell
+                  checked={selectedIds.has(id)}
+                  onChange={() => onToggle(id)}
+                  label={`Select ${name}`}
+                />
                 <td className="px-4 py-3"><CandidateLink candidateJob={cj} jobId={jobId} /></td>
                 <td className="px-4 py-3 text-muted">{row.jobRound?.name || 'Round 1'}</td>
                 <td className="px-4 py-3 text-muted">{formatDate(row.scheduledAt)}</td>
@@ -135,12 +190,8 @@ function InterviewsTable({ rows, jobId, onRefresh }) {
                       {hasScorecard ? 'Open scorecard' : 'View profile'}
                     </Link>
                   </Button>
-                  {row.status === 'SCHEDULED' && (
-                    <Button variant="ghost" size="sm" onClick={onRefresh} title="Refresh interview status">
-                      <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-                    </Button>
-                  )}
                 </td>
+                <RefreshCell onRefresh={() => onRefreshRow(id)} label={`Refresh ${name}`} />
               </tr>
             );
           })}
@@ -150,7 +201,7 @@ function InterviewsTable({ rows, jobId, onRefresh }) {
   );
 }
 
-function DecisionTable({ rows, jobId, onChanged }) {
+function DecisionTable({ rows, jobId, selectedIds, onToggle, onRefreshRow, onChanged }) {
   const [busyId, setBusyId] = useState(null);
 
   const decide = async (candidateJobId, decision) => {
@@ -190,24 +241,33 @@ function DecisionTable({ rows, jobId, onChanged }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[900px] text-left text-sm">
+      <table className="w-full min-w-[980px] text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-muted">
           <tr>
+            <th className="w-10 px-4 py-3"><span className="sr-only">Select</span></th>
             <th className="px-4 py-3 font-semibold">Candidate</th>
             <th className="px-4 py-3 font-semibold">Match</th>
             <th className="px-4 py-3 font-semibold">Recommendation</th>
             <th className="px-4 py-3 font-semibold">Outreach</th>
             <th className="px-4 py-3 font-semibold">Actions</th>
+            <th className="px-4 py-3 font-semibold">Refresh</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((row) => {
+            const id = row.candidateJobId;
+            const name = row.candidate?.name || 'candidate';
             const evaluation = row.scorecards?.[0]?.callRecord?.evaluation;
             const recommendation = evaluation?.recommendation || row.scorecards?.[0]?.summary?.aiRecommendation;
             const match = row.overallMatch == null ? '—' : `${Math.round(Number(row.overallMatch))}%`;
             const outreach = row.outreachRecords?.[0]?.pipelineStatus;
             return (
-              <tr key={row.candidateJobId} className="hover:bg-slate-50/70">
+              <tr key={id} className="hover:bg-slate-50/70">
+                <SelectCell
+                  checked={selectedIds.has(id)}
+                  onChange={() => onToggle(id)}
+                  label={`Select ${name}`}
+                />
                 <td className="px-4 py-3"><CandidateLink candidateJob={row} jobId={jobId} /></td>
                 <td className="px-4 py-3 font-semibold text-foreground">{match}</td>
                 <td className="px-4 py-3">
@@ -243,6 +303,7 @@ function DecisionTable({ rows, jobId, onChanged }) {
                     </Button>
                   </div>
                 </td>
+                <RefreshCell onRefresh={() => onRefreshRow(id)} label={`Refresh ${name}`} />
               </tr>
             );
           })}
@@ -256,6 +317,7 @@ export function JobWorkflowTab({ jobId, type }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -267,7 +329,12 @@ export function JobWorkflowTab({ jobId, type }) {
           ? getInterviewsRequest({ jobId })
           : getDecisionQueueRequest({ jobId });
       const response = await request;
-      setRows(response.data?.data || []);
+      const nextRows = response.data?.data || [];
+      setRows(nextRows);
+      setSelectedIds((current) => {
+        const valid = new Set(nextRows.map((row) => rowSelectId(type, row)));
+        return new Set([...current].filter((id) => valid.has(id)));
+      });
     } catch (err) {
       setError(err.response?.data?.message || `Failed to load ${type}`);
     } finally {
@@ -276,10 +343,29 @@ export function JobWorkflowTab({ jobId, type }) {
   }, [jobId, type]);
 
   useEffect(() => {
+    setSelectedIds(new Set());
     load();
   }, [load]);
 
+  const toggleSelect = (id) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const canRefreshList = selectedIds.size > 1;
   const title = type[0].toUpperCase() + type.slice(1);
+  const selectedCount = selectedIds.size;
+
+  const headerHint = useMemo(() => {
+    if (selectedCount > 1) return `${selectedCount} selected — refresh list available`;
+    if (selectedCount === 1) return 'Use the row Refresh button, or select more than one for Refresh list';
+    return 'Select more than one candidate to enable Refresh list';
+  }, [selectedCount]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -291,10 +377,19 @@ export function JobWorkflowTab({ jobId, type }) {
             {type === 'decisions' && 'Review scorecards and decide the next step.'}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Refresh
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={load}
+          disabled={loading || !canRefreshList}
+          title={canRefreshList ? 'Refresh selected candidates' : 'Select more than one candidate to refresh the list'}
+        >
+          <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Refresh list
         </Button>
       </div>
+      {rows.length > 0 && !loading && !error ? (
+        <p className="text-xs text-muted">{headerHint}</p>
+      ) : null}
       <div className="rounded-xl border border-border bg-card shadow-none">
         {loading && <p className="px-6 py-14 text-center text-sm text-muted">Loading {type}…</p>}
         {!loading && error && (
@@ -305,13 +400,32 @@ export function JobWorkflowTab({ jobId, type }) {
         )}
         {!loading && !error && !rows.length && <EmptyState type={type} />}
         {!loading && !error && rows.length > 0 && type === 'outreach' && (
-          <OutreachTable rows={rows} jobId={jobId} />
+          <OutreachTable
+            rows={rows}
+            jobId={jobId}
+            selectedIds={selectedIds}
+            onToggle={toggleSelect}
+            onRefreshRow={load}
+          />
         )}
         {!loading && !error && rows.length > 0 && type === 'interviews' && (
-          <InterviewsTable rows={rows} jobId={jobId} onRefresh={load} />
+          <InterviewsTable
+            rows={rows}
+            jobId={jobId}
+            selectedIds={selectedIds}
+            onToggle={toggleSelect}
+            onRefreshRow={load}
+          />
         )}
         {!loading && !error && rows.length > 0 && type === 'decisions' && (
-          <DecisionTable rows={rows} jobId={jobId} onChanged={load} />
+          <DecisionTable
+            rows={rows}
+            jobId={jobId}
+            selectedIds={selectedIds}
+            onToggle={toggleSelect}
+            onRefreshRow={load}
+            onChanged={load}
+          />
         )}
       </div>
     </div>

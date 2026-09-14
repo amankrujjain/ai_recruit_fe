@@ -1,6 +1,15 @@
 import apiClient from './client';
 
-export const listJobsRequest = (params) => apiClient.get('/jobs', { params });
+export const listJobsRequest = (params = {}) => {
+  const { page, limit, search, isActive } = params;
+  const query = {};
+  if (page !== undefined) query.page = page;
+  if (limit !== undefined) query.limit = limit;
+  if (search) query.search = search;
+  if (isActive === true) query.isActive = true;
+  if (isActive === false) query.isActive = false;
+  return apiClient.get('/jobs', { params: query });
+};
 
 export const getJobRequest = (jobId) => apiClient.get(`/jobs/${jobId}`);
 
@@ -15,6 +24,8 @@ export const updateJobRequest = (jobId, payload) => {
 
 export const closeJobRequest = (jobId, payload = {}) =>
   apiClient.post(`/jobs/${jobId}/close`, payload);
+
+export const deleteJobRequest = (jobId) => apiClient.delete(`/jobs/${jobId}`);
 
 export const listCandidatesRequest = (jobId, params) =>
   apiClient.get(`/jobs/${jobId}/candidates`, { params });

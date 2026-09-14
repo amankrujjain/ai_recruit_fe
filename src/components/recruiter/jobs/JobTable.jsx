@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Eye, Pencil, MapPin } from 'lucide-react';
+import { Eye, Pencil, MapPin, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { employmentTypeLabels } from '@/lib/employmentType';
+import { getJobsListEmptyState, isJobActive } from '@/lib/jobStatus';
 
 function formatLocation(location) {
   if (Array.isArray(location)) {
@@ -29,18 +30,28 @@ function PipelineCell({ pipeline }) {
   );
 }
 
-export function JobTable({ items, loading }) {
+export function JobTable({
+  items,
+  loading,
+  onDelete,
+  deletingJobId,
+  statusFilter = 'all',
+  hasSearch = false,
+}) {
   if (loading) {
     return <p className="py-8 text-center text-sm text-muted">Loading jobs…</p>;
   }
 
   if (!items.length) {
+    const empty = getJobsListEmptyState(statusFilter, hasSearch);
     return (
       <div className="py-12 text-center">
-        <p className="text-sm text-muted">No jobs yet.</p>
-        <Button asChild className="mt-4">
-          <Link to="/recruiter/jobs/new">Create your first job</Link>
-        </Button>
+        <p className="text-sm text-muted">{empty.message}</p>
+        {empty.showCreateCta ? (
+          <Button asChild className="mt-4">
+            <Link to="/recruiter/jobs/new">Create your first job</Link>
+          </Button>
+        ) : null}
       </div>
     );
   }
@@ -73,6 +84,7 @@ export function JobTable({ items, loading }) {
         <tbody>
           {items.map((job) => {
             const locationLabel = formatLocation(job.location);
+            const active = isJobActive(job);
             return (
               <tr
                 key={job.jobId}
@@ -92,8 +104,8 @@ export function JobTable({ items, loading }) {
                   <PipelineCell pipeline={job.pipeline} />
                 </td>
                 <td className="px-5 py-4">
-                  <Badge variant={job.isActive ? 'success' : 'muted'}>
-                    {job.isActive ? 'Active' : 'Inactive'}
+                  <Badge variant={active ? 'success' : 'muted'}>
+                    {active ? 'Active' : 'Inactive'}
                   </Badge>
                 </td>
                 <td className="px-5 py-4">
@@ -119,6 +131,18 @@ export function JobTable({ items, loading }) {
                         <Pencil className="mr-1.5 h-3.5 w-3.5" aria-hidden />
                         Edit
                       </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      disabled={deletingJobId === job.jobId}
+                      aria-label={`Delete ${job.jobTitle}`}
+                      onClick={() => onDelete?.(job)}
+                    >
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      {deletingJobId === job.jobId ? 'Deleting…' : 'Delete'}
                     </Button>
                   </div>
                 </td>
