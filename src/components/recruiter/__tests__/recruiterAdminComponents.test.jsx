@@ -14,6 +14,28 @@ vi.mock('@/components/admin/recruiters/RecruiterRowActions', () => ({
   RecruiterRowActions: () => <div>actions</div>,
 }));
 
+vi.mock('@/api/adminOrgApi', () => ({
+  getVoicesRequest: vi.fn(async () => ({
+    data: {
+      data: {
+        voices: [
+          {
+            voiceId: 'anika',
+            name: 'Anika',
+            previewUrl: 'https://example.com/a.mp3',
+            gender: 'female',
+            language: 'hi',
+            accent: 'indian',
+            descriptive: 'warm',
+            supportedLanguages: ['hi', 'en'],
+          },
+        ],
+      },
+    },
+  })),
+  getMyOrganizationRequest: vi.fn(async () => ({ data: { data: { settings: {} } } })),
+}));
+
 describe('FileUploadZone', () => {
   it('uploads files and respects disabled/excel label', async () => {
     const user = userEvent.setup();
@@ -219,6 +241,14 @@ describe('JobForm', () => {
     await user.type(screen.getByLabelText(/job title/i), '  Engineer  ');
     const locationInput = screen.getByPlaceholderText(/add a location/i);
     await user.type(locationInput, 'Remote{Enter}');
+    await user.type(screen.getByLabelText(/description/i), '  Build APIs long enough  ');
+    const skillInputs = screen.getAllByPlaceholderText(/type a skill and press enter/i);
+    await user.type(skillInputs[0], 'React{Enter}');
+    await user.click(screen.getByRole('button', { name: /^next$/i }));
+  }
+
+  async function fillStep2AndAdvance(user) {
+    await user.selectOptions(await screen.findByLabelText(/^agent$/i), 'anika');
     await user.click(screen.getByRole('button', { name: /^next$/i }));
   }
 
@@ -227,15 +257,13 @@ describe('JobForm', () => {
     const onSubmit = vi.fn();
     render(<JobForm saving={false} onSubmit={onSubmit} onCancel={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { name: 'Role details' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Job Details' })).toBeInTheDocument();
+    expect(screen.getByText('AI setup')).toBeInTheDocument();
+    expect(screen.getByText('Review')).toBeInTheDocument();
     await fillStep1AndAdvance(user);
+    await fillStep2AndAdvance(user);
 
-    await user.type(screen.getByLabelText(/description/i), '  Build APIs long enough  ');
-    const skillInputs = screen.getAllByPlaceholderText(/type a skill and press enter/i);
-    await user.type(skillInputs[0], 'React{Enter}');
-    await user.click(screen.getByRole('button', { name: /^next$/i }));
-
-    await user.click(screen.getByRole('button', { name: /publish/i }));
+    await user.click(screen.getByRole('button', { name: /create job/i }));
 
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -248,8 +276,14 @@ describe('JobForm', () => {
         location: ['Remote'],
         mandatorySkills: ['React'],
         preferredSkills: [],
+        voiceId: 'anika',
+        voiceAccent: 'indian',
       })
     );
+    expect(onSubmit.mock.calls[0][0].rounds).toEqual(expect.arrayContaining([
+      expect.objectContaining({ roundType: 'AI_CALL' }),
+      expect.objectContaining({ roundType: 'AI_SCREENING' }),
+    ]));
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
   });
 
@@ -269,6 +303,12 @@ describe('JobForm', () => {
           employmentType: 'CONTRACT',
           mandatorySkills: ['JS'],
           preferredSkills: ['TS'],
+          voiceId: 'anika',
+          voiceName: 'Anika',
+          voiceGender: 'female',
+          interviewLanguage: 'hi',
+          voiceAccent: 'indian',
+          voiceStyle: 'warm',
         }}
         saving={false}
         onSubmit={onSubmit}
@@ -277,13 +317,14 @@ describe('JobForm', () => {
     expect(screen.getByDisplayValue('Dev')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^next$/i }));
     await user.click(screen.getByRole('button', { name: /^next$/i }));
-    await user.click(screen.getByRole('button', { name: /publish/i }));
+    await user.click(screen.getByRole('button', { name: /create job/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         salaryMin: 100,
         salaryMax: 200,
         location: ['Remote'],
         mandatorySkills: ['JS'],
+        voiceId: 'anika',
       })
     );
   });

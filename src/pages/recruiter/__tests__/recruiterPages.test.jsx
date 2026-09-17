@@ -121,6 +121,9 @@ vi.mock('@/components/recruiter/candidates/CandidateTable', () => ({
         <button type="button" onClick={() => props.onToggle('cand-1')}>
           Toggle one
         </button>
+        <button type="button" onClick={() => props.onToggle('cand-2')}>
+          Toggle two
+        </button>
         <button type="button" onClick={() => props.onToggleAll(true)}>
           Toggle all
         </button>
@@ -145,6 +148,9 @@ vi.mock('@/components/recruiter/candidates/CandidateTable', () => ({
           }
         >
           View interview
+        </button>
+        <button type="button" onClick={() => props.onRefreshRow?.({ candidateJobId: 'cand-1' })}>
+          Refresh row
         </button>
       </div>
     );
@@ -871,12 +877,41 @@ describe('JobDetailPage', () => {
     );
   });
 
-  it('refresh list button loads candidates', async () => {
+  it('refresh list button stays disabled until more than one candidate is selected', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    listCandidatesRequest.mockResolvedValue({
+      data: {
+        data: [
+          candidateFixture,
+          { candidateJobId: 'cand-2', overallMatch: 88, candidate: { name: 'Grace Hopper' } },
+        ],
+        pagination: { page: 1, totalPages: 1, total: 2 },
+      },
+    });
+    renderDetail('/recruiter/jobs/job-1?tab=candidates');
+
+    await screen.findByTestId('candidate-table');
+    const refreshList = screen.getByRole('button', { name: 'Refresh list' });
+    expect(refreshList).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Toggle one' }));
+    expect(refreshList).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Toggle two' }));
+    expect(refreshList).toBeEnabled();
+
+    const callsBefore = listCandidatesRequest.mock.calls.length;
+    await user.click(refreshList);
+    await waitFor(() => expect(listCandidatesRequest.mock.calls.length).toBeGreaterThan(callsBefore));
+  });
+
+  it('row refresh button loads candidates without multi-select', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
 
+    await screen.findByTestId('candidate-table');
     const callsBefore = listCandidatesRequest.mock.calls.length;
-    await user.click(await screen.findByRole('button', { name: 'Refresh list' }));
+    await user.click(screen.getByRole('button', { name: 'Refresh row' }));
     await waitFor(() => expect(listCandidatesRequest.mock.calls.length).toBeGreaterThan(callsBefore));
   });
 

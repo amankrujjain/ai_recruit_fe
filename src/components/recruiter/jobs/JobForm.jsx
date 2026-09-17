@@ -1,21 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmploymentType, employmentTypeLabels } from '@/lib/employmentType';
+import { AiRoundType, aiRoundTypeLabels } from '@/lib/aiRoundType';
+import { getMyOrganizationRequest, getVoicesRequest } from '@/api/adminOrgApi';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Select } from '@/components/ui/Select';
 import { TagInput } from '@/components/ui/TagInput';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CreateJobStepper } from '@/components/recruiter/jobs/CreateJobStepper';
+import { JobAgentSetup } from '@/components/recruiter/jobs/JobAgentSetup';
 import {
   EXPERIENCE_MAX_CAP,
+  MAX_ROUNDS,
+  defaultRounds,
+  emptyJobForm,
   formToPayload,
+  isJobFormDirty,
   jobToForm,
-  validateRequirements,
+  validateAiSetup,
   validateRoleDetails,
 } from '@/components/recruiter/jobs/jobFormDraft';
+import { voiceToAgentFields } from '@/lib/voiceAgent';
 
 function StepActions({
   onBack,
@@ -139,80 +148,6 @@ function RoleDetailsFields({ form, setForm }) {
           />
         </div>
       </div>
-    </div>
-  );
-}
-
-function RequirementsFields({ form, setForm }) {
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
-  const updateRound = (index, key, value) => setForm((f) => ({
-    ...f,
-    aiRounds: f.aiRounds.map((round, i) => (i === index ? { ...round, [key]: value } : round)),
-  }));
-  const addRound = () => setForm((f) => ({
-    ...f,
-    aiRounds: [
-      ...f.aiRounds,
-      { name: `Round ${f.aiRounds.length + 1}`, roundType: 'AI', config: {} },
-    ],
-  }));
-  const removeRound = (index) => setForm((f) => ({
-    ...f,
-    aiRounds: f.aiRounds.filter((_, i) => i !== index),
-  }));
-
-  return (
-    <div className="space-y-5">
-      <div className="rounded-lg bg-brand-50 px-3 py-2.5 text-xs text-slate-600">
-        Configure the screening rounds and the minimum match score used to determine eligibility.
-      </div>
-
-      <div className="space-y-3 rounded-xl border border-border p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">AI rounds</h3>
-            <p className="mt-0.5 text-xs text-muted">Candidates progress through these rounds in order.</p>
-          </div>
-          <Button type="button" variant="outline" size="sm" onClick={addRound}>Add round</Button>
-        </div>
-        <div className="space-y-2">
-          {form.aiRounds.map((round, index) => (
-            <div key={`${round.name}-${index}`} className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                aria-label={`Round ${index + 1} name`}
-                value={round.name}
-                onChange={(e) => updateRound(index, 'name', e.target.value)}
-              />
-              <Select
-                aria-label={`Round ${index + 1} type`}
-                value={round.roundType}
-                onChange={(e) => updateRound(index, 'roundType', e.target.value)}
-              >
-                <option value="AI">AI screening</option>
-                <option value="HUMAN">Human interview</option>
-              </Select>
-              {form.aiRounds.length > 1 && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => removeRound(index)}>
-                  Remove
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="aiMatchThreshold">Minimum match score (%)</Label>
-        <Input
-          id="aiMatchThreshold"
-          type="number"
-          min={0}
-          max={100}
-          value={form.aiMatchThreshold}
-          onChange={set('aiMatchThreshold')}
-        />
-        <p className="text-xs text-muted">Candidates below this score cannot be selected for outreach.</p>
-      </div>
 
       <div className="space-y-2">
         <Label htmlFor="jobDescription">Description</Label>
@@ -247,22 +182,108 @@ function RequirementsFields({ form, setForm }) {
   );
 }
 
+function AiSetupFields({ form, setForm, voices, voicesLoading }) {
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const updateRound = (index, key, value) => setForm((f) => ({
+    ...f,
+    rounds: f.rounds.map((round, i) => (i === index ? { ...round, [key]: value } : round)),
+  }));
+  const addRound = () => setForm((f) => (
+    f.rounds.length >= MAX_ROUNDS
+      ? f
+      : {
+        ...f,
+        rounds: [
+          ...f.rounds,
+          { name: `Round ${f.rounds.length + 1}`, roundType: AiRoundType.AI_CALL, minimumPassScore: 70, config: {} },
+        ],
+      }
+  ));
+  const removeRound = (index) => setForm((f) => (
+    f.rounds.length <= 1
+      ? f
+      : { ...f, rounds: f.rounds.filter((_, i) => i !== index) }
+  ));
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-3 rounded-xl border border-border p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">AI rounds</h3>
+            <p className="mt-0.5 text-xs text-muted">Candidates progress through these rounds in order.</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addRound}
+            disabled={form.rounds.length >= MAX_ROUNDS}
+          >
+            Add round
+          </Button>
+        </div>
+        <div className="space-y-2">
+          {form.rounds.map((round, index) => (
+            <div key={`${round.roundType}-${index}`} className="grid gap-2 sm:grid-cols-[1fr_160px_110px_auto]">
+              <Input
+                aria-label={`Round ${index + 1} name`}
+                value={round.name}
+                onChange={(e) => updateRound(index, 'name', e.target.value)}
+              />
+              <Select
+                aria-label={`Round ${index + 1} type`}
+                value={round.roundType}
+                onChange={(e) => updateRound(index, 'roundType', e.target.value)}
+              >
+                {Object.values(AiRoundType).map((code) => (
+                  <option key={code} value={code}>{aiRoundTypeLabels[code]}</option>
+                ))}
+              </Select>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                aria-label={`Round ${index + 1} score`}
+                value={round.minimumPassScore}
+                onChange={(e) => updateRound(index, 'minimumPassScore', e.target.value === '' ? '' : Number(e.target.value))}
+              />
+              {form.rounds.length > 1 && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => removeRound(index)}>
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2 rounded-xl border border-border p-4">
+        <Label htmlFor="aiMatchThreshold">Maximum score for AI resume parsing (%)</Label>
+        <Input
+          id="aiMatchThreshold"
+          type="number"
+          min={0}
+          max={100}
+          value={form.aiMatchThreshold}
+          onChange={set('aiMatchThreshold')}
+        />
+        <p className="text-xs text-muted">
+          Candidates below this score cannot be invited to the first AI round.
+        </p>
+      </div>
+
+      <JobAgentSetup form={form} setForm={setForm} voices={voices} voicesLoading={voicesLoading} />
+    </div>
+  );
+}
+
 function ReviewSummary({ form }) {
   return (
     <dl className="space-y-4 text-sm">
       <div>
         <dt className="text-muted">Job title</dt>
         <dd className="mt-0.5 font-medium text-foreground">{form.jobTitle || '—'}</dd>
-      </div>
-      <div>
-        <dt className="text-muted">AI rounds</dt>
-        <dd className="mt-0.5 font-medium text-foreground">
-          {form.aiRounds?.map((round) => round.name).join(', ') || '—'}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-muted">Minimum match score</dt>
-        <dd className="mt-0.5 font-medium text-foreground">{form.aiMatchThreshold}%</dd>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -310,32 +331,151 @@ function ReviewSummary({ form }) {
           {form.jobDescription || '—'}
         </dd>
       </div>
+      <div>
+        <dt className="text-muted">AI rounds</dt>
+        <dd className="mt-2 space-y-1 font-medium text-foreground">
+          {(form.rounds || []).map((round) => (
+            <div key={round.name}>
+              {round.name} · {aiRoundTypeLabels[round.roundType] || round.roundType} · pass {round.minimumPassScore}%
+            </div>
+          ))}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-muted">CV / resume-parse score</dt>
+        <dd className="mt-0.5 font-medium text-foreground">{form.aiMatchThreshold}%</dd>
+      </div>
+      <div>
+        <dt className="text-muted">AI agent</dt>
+        <dd className="mt-0.5 font-medium text-foreground">
+          {form.voiceName || '—'} · {form.voiceGender || '—'} · {form.interviewLanguage || '—'} · {form.voiceAccent || '—'} · {form.voiceStyle || '—'}
+        </dd>
+      </div>
     </dl>
   );
 }
 
 const STEP_COPY = {
   1: {
-    title: 'Role details',
+    title: 'Job Details',
     subtitle: 'Step 1 of 3 — Tell us about the position.',
   },
   2: {
-    title: 'AI round setup',
-    subtitle: 'Step 2 of 3 — Configure requirements and AI rounds.',
+    title: 'AI setup',
+    subtitle: 'Step 2 of 3 — Configure rounds, CV score, and the job-level agent.',
   },
   3: {
-    title: 'Review & publish',
-    subtitle: 'Step 3 of 3 — Confirm details before publishing.',
+    title: 'Review',
+    subtitle: 'Step 3 of 3 — Confirm details before creating the job.',
   },
 };
+
+const UNSAVED_COPY = 'There are unsaved data. Are you sure to quit?';
 
 export function JobForm({ initial, saving, onSubmit, onCancel }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(() => jobToForm(initial));
+  const [voices, setVoices] = useState([]);
+  const [voicesLoading, setVoicesLoading] = useState(false);
+  const [quitOpen, setQuitOpen] = useState(false);
+  const [pendingHref, setPendingHref] = useState(null);
+  const submittedRef = useRef(false);
+  const baselineRef = useRef(jobToForm(initial || emptyJobForm));
+  const dirty = !submittedRef.current && isJobFormDirty(form, baselineRef.current);
 
   useEffect(() => {
-    if (initial) setForm(jobToForm(initial));
+    if (initial) {
+      const next = jobToForm(initial);
+      setForm(next);
+      baselineRef.current = next;
+    }
   }, [initial]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setVoicesLoading(true);
+      try {
+        const [{ data: voiceData }, { data: orgData }] = await Promise.all([
+          getVoicesRequest(),
+          getMyOrganizationRequest(),
+        ]);
+        if (cancelled) return;
+        const loadedVoices = voiceData?.data?.voices ?? [];
+        setVoices(loadedVoices);
+        const settings = orgData?.data?.settings || orgData?.data?.organizationSettings;
+        setForm((current) => {
+          if (current.voiceId || !settings?.voiceId) return current;
+          const match = loadedVoices.find((voice) => voice.voiceId === settings.voiceId);
+          const next = match
+            ? { ...current, ...voiceToAgentFields(match) }
+            : {
+              ...current,
+              voiceId: settings.voiceId,
+              voiceName: settings.voiceName || current.voiceName,
+              interviewLanguage: settings.interviewLanguage || current.interviewLanguage,
+            };
+          if (!isJobFormDirty(current, baselineRef.current)) {
+            baselineRef.current = next;
+          }
+          return next;
+        });
+      } catch {
+        if (!cancelled) toast.error('Failed to load voices');
+      } finally {
+        if (!cancelled) setVoicesLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const onBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
+
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const onClick = (event) => {
+      const anchor = event.target.closest?.('a[href]');
+      if (!anchor || anchor.target === '_blank' || event.metaKey || event.ctrlKey) return;
+      const url = new URL(anchor.href, window.location.origin);
+      if (url.origin !== window.location.origin) return;
+      if (`${url.pathname}${url.search}` === `${window.location.pathname}${window.location.search}`) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setPendingHref(`${url.pathname}${url.search}${url.hash}`);
+      setQuitOpen(true);
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, [dirty]);
+
+  const requestQuit = () => {
+    if (!dirty) {
+      onCancel?.();
+      return;
+    }
+    setPendingHref(null);
+    setQuitOpen(true);
+  };
+
+  const confirmQuit = () => {
+    setQuitOpen(false);
+    if (pendingHref) {
+      window.location.assign(pendingHref);
+      return;
+    }
+    onCancel?.();
+  };
 
   const goNext = () => {
     if (step === 1) {
@@ -348,7 +488,7 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
       return;
     }
     if (step === 2) {
-      const error = validateRequirements(form);
+      const error = validateAiSetup(form);
       if (error) {
         toast.error(error);
         return;
@@ -357,19 +497,20 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
     }
   };
 
-  const handlePublish = () => {
+  const handleCreate = () => {
     const roleError = validateRoleDetails(form);
     if (roleError) {
       toast.error(roleError);
       setStep(1);
       return;
     }
-    const reqError = validateRequirements(form);
-    if (reqError) {
-      toast.error(reqError);
+    const aiError = validateAiSetup(form);
+    if (aiError) {
+      toast.error(aiError);
       setStep(2);
       return;
     }
+    submittedRef.current = true;
     onSubmit(formToPayload(form));
   };
 
@@ -387,17 +528,24 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
           </div>
 
           {step === 1 && <RoleDetailsFields form={form} setForm={setForm} />}
-          {step === 2 && <RequirementsFields form={form} setForm={setForm} />}
+          {step === 2 && (
+            <AiSetupFields
+              form={form}
+              setForm={setForm}
+              voices={voices}
+              voicesLoading={voicesLoading}
+            />
+          )}
           {step === 3 && <ReviewSummary form={form} />}
 
           <StepActions
-            onCancel={onCancel}
+            onCancel={onCancel ? requestQuit : undefined}
             onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
             showBack={step > 1}
-            onNext={step === 3 ? handlePublish : goNext}
+            onNext={step === 3 ? handleCreate : goNext}
             nextLabel={
               step === 3
-                ? (saving ? 'Publishing…' : 'Publish')
+                ? (saving ? 'Creating…' : 'Create job')
                 : (
                   <>
                     Next
@@ -409,6 +557,27 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
           />
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={quitOpen}
+        title={UNSAVED_COPY}
+        cancelLabel="Stay"
+        confirmLabel="Quit"
+        variant="danger"
+        onCancel={() => {
+          setQuitOpen(false);
+          setPendingHref(null);
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setQuitOpen(false);
+            setPendingHref(null);
+          }
+        }}
+        onConfirm={confirmQuit}
+      />
     </div>
   );
 }
+
+export { defaultRounds };

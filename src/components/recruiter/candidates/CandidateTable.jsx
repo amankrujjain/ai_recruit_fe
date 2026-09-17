@@ -1,4 +1,4 @@
-import { Eye, Trash2, Mail } from 'lucide-react';
+import { Eye, Trash2, Mail, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import {
@@ -83,6 +83,7 @@ export function CandidateTable({
   onDelete,
   onViewInterview,
   onInviteOne,
+  onRefreshRow,
   invitingId,
 }) {
   if (loading) {
@@ -119,6 +120,9 @@ export function CandidateTable({
             </th>
             <th className="px-3 py-3 text-xs font-medium uppercase tracking-wide text-muted">
               Actions
+            </th>
+            <th className="px-3 py-3 text-xs font-medium uppercase tracking-wide text-muted">
+              Refresh
             </th>
           </tr>
         </thead>
@@ -226,6 +230,18 @@ export function CandidateTable({
                       {deleting ? 'Removing…' : 'Remove'}
                     </Button>
                   </div>
+                </td>
+                <td className="px-3 py-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Refresh ${name}`}
+                    title={`Refresh ${name}`}
+                    onClick={() => onRefreshRow?.(row)}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                  </Button>
                 </td>
               </tr>
             );

@@ -2,9 +2,9 @@ import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STEPS = [
-  { id: 1, label: 'Role details' },
-  { id: 2, label: 'AI round setup' },
-  { id: 3, label: 'Review & publish' },
+  { id: 1, label: 'Job Details' },
+  { id: 2, label: 'AI setup' },
+  { id: 3, label: 'Review' },
 ];
 
 export function CreateJobStepper({ currentStep }) {

@@ -18,6 +18,28 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+vi.mock('@/api/adminOrgApi', () => ({
+  getVoicesRequest: vi.fn(async () => ({
+    data: {
+      data: {
+        voices: [
+          {
+            voiceId: 'anika',
+            name: 'Anika',
+            previewUrl: 'https://example.com/a.mp3',
+            gender: 'female',
+            language: 'hi',
+            accent: 'indian',
+            descriptive: 'warm',
+            supportedLanguages: ['hi', 'en'],
+          },
+        ],
+      },
+    },
+  })),
+  getMyOrganizationRequest: vi.fn(async () => ({ data: { data: { settings: {} } } })),
+}));
+
 vi.mock('@/api/recruitmentApi', () => ({
   getScorecardRequest: vi.fn(),
   getCallRecordsRequest: vi.fn(),
@@ -525,6 +547,10 @@ describe('JobDetailHeader / JobTable', () => {
     expect(screen.getByText(/no jobs yet/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /create your first job/i })).toBeInTheDocument();
 
+    rerender(<JobTable items={[]} loading={false} statusFilter="inactive" />);
+    expect(screen.getByText(/no inactive jobs/i)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /create your first job/i })).not.toBeInTheDocument();
+
     rerender(
       <JobTable
         items={[
@@ -553,6 +579,31 @@ describe('JobDetailHeader / JobTable', () => {
     expect(screen.getByText('Pipeline')).toBeInTheDocument();
     expect(screen.getByText('WEIRD')).toBeInTheDocument();
     expect(screen.getByText('Inactive')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /delete/i }).length).toBe(2);
+  });
+
+  it('calls onDelete when delete is clicked', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    renderWithProviders(
+      <JobTable
+        items={[
+          {
+            jobId: 'j1',
+            jobTitle: 'Dev',
+            location: ['Remote'],
+            employmentType: 'FULL_TIME',
+            isActive: true,
+          },
+        ]}
+        loading={false}
+        onDelete={onDelete}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /delete dev/i }));
+    expect(onDelete).toHaveBeenCalledWith(
+      expect.objectContaining({ jobId: 'j1', jobTitle: 'Dev' })
+    );
   });
 });
 
@@ -568,15 +619,16 @@ describe('JobForm TagInput and saving', () => {
     const locationInput = screen.getByPlaceholderText(/add a location/i);
     await user.type(locationInput, 'Remote{Enter}');
     expect(screen.getByText(/remote ✕/i)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /^next$/i }));
-
     await user.type(screen.getByLabelText(/description/i), 'Build systems here');
     const skillInputs = screen.getAllByPlaceholderText(/type a skill and press enter/i);
     await user.type(skillInputs[0], 'React{Enter}');
     await user.type(skillInputs[1], 'TypeScript{Enter}');
     await user.click(screen.getByRole('button', { name: /^next$/i }));
 
-    await user.click(screen.getByRole('button', { name: /publish/i }));
+    await user.selectOptions(await screen.findByLabelText(/^agent$/i), 'anika');
+    await user.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await user.click(screen.getByRole('button', { name: /create job/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         location: ['Remote'],
@@ -586,7 +638,7 @@ describe('JobForm TagInput and saving', () => {
     );
 
     rerender(<JobForm saving onSubmit={onSubmit} />);
-    expect(screen.getByRole('button', { name: /publishing/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /creating/i })).toBeDisabled();
   });
 
   it('fills sparse initial job via toForm defaults', () => {
@@ -600,6 +652,18 @@ describe('JobForm TagInput and saving', () => {
     expect(screen.getByLabelText(/job title/i)).toHaveValue('');
     expect(screen.getByLabelText(/min experience/i)).toHaveValue(0);
     expect(screen.getByLabelText(/max experience/i)).toHaveValue(5);
+  });
+
+  it('shows unsaved-quit copy on dirty cancel and Stay keeps the form', async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    render(<JobForm saving={false} onSubmit={vi.fn()} onCancel={onCancel} />);
+    await user.type(screen.getByLabelText(/job title/i), 'Keep me');
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(screen.getByText('There are unsaved data. Are you sure to quit?')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^stay$/i }));
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/job title/i)).toHaveValue('Keep me');
   });
 });
 

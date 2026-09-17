@@ -4,6 +4,7 @@ import {
   getJobRequest,
   createJobRequest,
   updateJobRequest,
+  deleteJobRequest,
 } from '@/api/jobApi';
 import { getApiErrorMessage } from '@/lib/apiError';
 
@@ -96,6 +97,18 @@ export const closeJob = createAsyncThunk(
   }
 );
 
+export const deleteJob = createAsyncThunk(
+  'jobs/delete',
+  async (jobId, { rejectWithValue }) => {
+    try {
+      await deleteJobRequest(jobId);
+      return jobId;
+    } catch (err) {
+      return rejectWithValue(getApiErrorMessage(err, 'Failed to delete job'));
+    }
+  }
+);
+
 const jobsSlice = createSlice({
   name: 'jobs',
   initialState: {
@@ -106,6 +119,7 @@ const jobsSlice = createSlice({
     loading: false,
     detailLoading: false,
     saving: false,
+    deletingJobId: null,
     error: null,
   },
   reducers: {
@@ -150,7 +164,24 @@ const jobsSlice = createSlice({
         s.items = s.items.map((j) => (j.jobId === a.payload.jobId ? a.payload : j));
       })
       .addCase(closeJob.pending, (s) => { s.saving = true; })
-      .addCase(closeJob.rejected, (s, a) => { s.saving = false; s.error = a.payload; });
+      .addCase(closeJob.rejected, (s, a) => { s.saving = false; s.error = a.payload; })
+      .addCase(deleteJob.pending, (s, a) => { s.deletingJobId = a.meta.arg; })
+      .addCase(deleteJob.fulfilled, (s, a) => {
+        s.deletingJobId = null;
+        const removed = s.items.find((job) => job.jobId === a.payload);
+        s.items = s.items.filter((job) => job.jobId !== a.payload);
+        if (s.current?.jobId === a.payload) s.current = null;
+        if (s.summary && removed) {
+          s.summary.total = Math.max(0, (s.summary.total ?? 0) - 1);
+          if (removed.isActive) {
+            s.summary.active = Math.max(0, (s.summary.active ?? 0) - 1);
+          }
+        }
+      })
+      .addCase(deleteJob.rejected, (s, a) => {
+        s.deletingJobId = null;
+        s.error = a.payload;
+      });
   },
 });
 
