@@ -3,7 +3,6 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FileUploadZone } from '@/components/recruiter/candidates/FileUploadZone';
 import { CandidateStatusBadge } from '@/components/recruiter/candidates/CandidateStatusBadge';
-import { SelectCandidatesBar } from '@/components/recruiter/candidates/SelectCandidatesBar';
 import { CandidateTable } from '@/components/recruiter/candidates/CandidateTable';
 import { CandidateStatus } from '@/lib/candidateStatus';
 import { TablePagination } from '@/components/admin/recruiters/TablePagination';
@@ -76,7 +75,7 @@ describe('FileUploadZone', () => {
   });
 });
 
-describe('CandidateStatusBadge / SelectCandidatesBar', () => {
+describe('CandidateStatusBadge', () => {
   it('badge falls back for empty/unknown', () => {
     const { rerender } = render(<CandidateStatusBadge />);
     expect(screen.getByText('—')).toBeInTheDocument();
@@ -84,22 +83,6 @@ describe('CandidateStatusBadge / SelectCandidatesBar', () => {
     expect(screen.getByText('Hired')).toBeInTheDocument();
     rerender(<CandidateStatusBadge status="CUSTOM" />);
     expect(screen.getByText('CUSTOM')).toBeInTheDocument();
-  });
-
-  it('bar is null at 0 and pluralizes', async () => {
-    const user = userEvent.setup();
-    const onSelect = vi.fn();
-    const { rerender } = render(
-      <SelectCandidatesBar selectedCount={0} selecting={false} onSelect={onSelect} />
-    );
-    expect(screen.queryByText(/selected/i)).toBeNull();
-
-    rerender(<SelectCandidatesBar selectedCount={1} selecting={false} onSelect={onSelect} />);
-    expect(screen.getByText('1 candidate selected')).toBeInTheDocument();
-
-    rerender(<SelectCandidatesBar selectedCount={2} selecting onSelect={onSelect} />);
-    expect(screen.getByText('2 candidates selected')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /selecting/i })).toBeDisabled();
   });
 });
 

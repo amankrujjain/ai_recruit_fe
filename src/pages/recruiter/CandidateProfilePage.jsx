@@ -28,6 +28,11 @@ import {
   inviteNextRoundRequest,
 } from '@/api/recruitmentApi';
 import { CandidateStatus } from '@/lib/candidateStatus';
+import {
+  findNextAiJobRound,
+  getNextStepSuggestion,
+  hasRemainingAiRounds,
+} from '@/lib/recommendation';
 import { fetchJob, selectJobs } from '@/store/slices/jobsSlice';
 
 export function CandidateProfilePage() {
@@ -86,10 +91,23 @@ export function CandidateProfilePage() {
     || (candidateJob?.scorecards && candidateJob.scorecards.length)
   );
   const hasRound1Score = ROUND_HAS_SCORE(evaluation);
+  const jobRounds = job?.rounds || [];
+  const candidateRounds = candidateJob?.rounds || [];
+  const nextStep = getNextStepSuggestion({
+    jobRounds,
+    candidateRounds,
+    evaluation,
+    scoringStatus: scorecard?.summary?.scoringStatus,
+    scoringReason: scorecard?.summary?.scoringReason,
+  });
+  const remainingAi = hasRemainingAiRounds(jobRounds, candidateRounds);
+  const nextRound = findNextAiJobRound(jobRounds, candidateRounds);
+  const decisionDone = [CandidateStatus.HIRED, CandidateStatus.REJECTED_MANUALLY].includes(
+    candidateJob?.status
+  );
 
   const applyStatus = async (status, successMessage) => {
     const decisionByStatus = {
-      [CandidateStatus.SHORTLISTED]: 'SELECTED',
       [CandidateStatus.REJECTED_MANUALLY]: 'REJECTED',
       [CandidateStatus.HIRED]: 'HIRED',
     };
@@ -171,6 +189,7 @@ export function CandidateProfilePage() {
           <RoundHistoryCard
             hasRound1Score={hasRound1Score}
             overallMatch={candidateJob.overallMatch}
+            candidateRounds={candidateJob.rounds}
           />
           <OutreachSummaryCard candidateJob={candidateJob} />
         </div>
@@ -178,11 +197,10 @@ export function CandidateProfilePage() {
 
       <CandidateProfileFooter
         saving={saving}
+        locked={decisionDone}
+        nextStepLabel={nextStep.label}
+        canInviteNext={nextStep.canInviteNext && Boolean(nextRound)}
         onInviteNext={() => {
-          const currentRound = candidateJob.rounds?.[candidateJob.rounds.length - 1]?.jobRound;
-          const nextRound = job?.rounds?.find(
-            (round) => round.roundOrder > (currentRound?.roundOrder || 1)
-          );
           if (!nextRound) {
             toast.error('No next round is configured for this job');
             return;
@@ -192,19 +210,10 @@ export function CandidateProfilePage() {
             roundId: nextRound.jobRoundId,
             title: `Invite to ${nextRound.name}?`,
             description: 'This will queue the configured outreach for the next recruitment round.',
-            confirmLabel: 'Invite to next round',
+            confirmLabel: nextStep.label || 'Invite to next round',
             successMessage: 'Next-round invite queued',
           });
         }}
-        onMarkSelected={() =>
-          setConfirm({
-            status: CandidateStatus.SHORTLISTED,
-            title: 'Mark as selected?',
-            description: 'This marks the candidate as shortlisted for this job.',
-            confirmLabel: 'Mark selected',
-            successMessage: 'Candidate marked as selected',
-          })
-        }
         onReject={() =>
           setConfirm({
             status: CandidateStatus.REJECTED_MANUALLY,
@@ -218,9 +227,11 @@ export function CandidateProfilePage() {
         onHire={() =>
           setConfirm({
             status: CandidateStatus.HIRED,
-            title: 'Hire candidate?',
-            description: 'This marks the candidate as hired for this job.',
-            confirmLabel: 'Hire',
+            title: remainingAi ? 'Hire before remaining AI rounds?' : 'Hire candidate?',
+            description: remainingAi
+              ? 'AI rounds remain for this job. Hiring now will skip the remaining AI screening rounds.'
+              : 'This marks the candidate as hired for this job.',
+            confirmLabel: remainingAi ? 'Hire anyway' : 'Hire',
             successMessage: 'Candidate hired',
           })
         }
@@ -231,6 +242,10 @@ export function CandidateProfilePage() {
         candidateJobId={candidateJobId}
         candidateName={candidateName}
         onOpenChange={setScorecardOpen}
+        jobRounds={jobRounds}
+        candidateRounds={candidateRounds}
+        candidateStatus={candidateJob?.status}
+        onDecisionSaved={load}
       />
 
       <ConfirmDialog

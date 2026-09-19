@@ -46,9 +46,11 @@ export function TopBar() {
   const { account } = useSelector(selectAuth);
   const { organization } = useSelector(selectAdminOrg);
   const [resetBusy, setResetBusy] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [search, setSearch] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const loggingOutRef = useRef(false);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -59,9 +61,18 @@ export function TopBar() {
   }, []);
 
   const handleLogout = async () => {
-    await dispatch(logoutUser());
-    toast.success('Signed out successfully');
-    navigate('/login');
+    if (loggingOutRef.current) return;
+    loggingOutRef.current = true;
+    setLoggingOut(true);
+    setMenuOpen(false);
+    try {
+      await dispatch(logoutUser());
+      toast.success('Signed out successfully');
+      navigate('/login');
+    } finally {
+      loggingOutRef.current = false;
+      setLoggingOut(false);
+    }
   };
 
   const handleRequestPasswordReset = async () => {
@@ -135,11 +146,12 @@ export function TopBar() {
             )}
             <button
               type="button"
+              disabled={loggingOut}
               onClick={handleLogout}
-              className="flex w-full items-center gap-2 border-t border-border px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-brand-50"
+              className="flex w-full items-center gap-2 border-t border-border px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-brand-50 disabled:opacity-50"
             >
               <LogOut className="h-4 w-4" />
-              Sign out
+              {loggingOut ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
         </div>

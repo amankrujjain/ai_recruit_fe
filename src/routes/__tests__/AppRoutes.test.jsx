@@ -112,7 +112,6 @@ import { AppRoutes } from '@/routes/AppRoutes';
 const authState = (role) => ({
   auth: {
     account: role ? { accountId: '1', role } : null,
-    token: role ? 't' : null,
     loading: false,
     error: null,
     initialized: true,

@@ -94,9 +94,10 @@ const OUTREACH_LABELS = Object.freeze({
   [OutreachDisplayStatus.SELECTED]: 'Selected',
   [OutreachDisplayStatus.EMAIL_QUEUED]: 'Email queued',
   [OutreachDisplayStatus.EMAIL_SENT]: 'Email sent',
-  [OutreachDisplayStatus.SCHEDULED]: 'Scheduled',
+  [OutreachDisplayStatus.SCHEDULED]: 'Scheduled', // booked — not interview result (C3)
 });
 
+/** Invite/book SoT only. Do not use for post-call journey status (Decision uses candidate_jobs.status). */
 export function getOutreachDisplayStatus(row) {
   if (!hasOutreach(row)) return OutreachDisplayStatus.NONE;
   const status = row.outreachRecords[0]?.pipelineStatus;

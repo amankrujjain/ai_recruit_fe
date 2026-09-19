@@ -15,7 +15,6 @@ import authReducer, {
   logoutUser,
   clearAuthError,
   setInitialized,
-  setTokens,
   clearSession,
   selectIsAuthenticated,
 } from '@/store/slices/authSlice';
@@ -30,23 +29,23 @@ describe('authSlice', () => {
   });
 
   it('handles sync reducers and selectors', () => {
-    const store = makeStore();
+    const store = makeStore({
+      auth: {
+        account: { accountId: '1' },
+        loading: false,
+        error: null,
+        initialized: false,
+      },
+    });
     store.dispatch(setInitialized());
-    store.dispatch(setTokens({ accessToken: 'a', refreshToken: 'r' }));
     expect(store.getState().auth.initialized).toBe(true);
-    expect(store.getState().auth.token).toBe('a');
-    expect(localStorage.getItem(storageKeys.accessToken)).toBe('a');
-    expect(localStorage.getItem(storageKeys.refreshToken)).toBe('r');
     expect(selectIsAuthenticated(store.getState())).toBe(true);
 
     store.dispatch({ type: clearAuthError.type });
-    store.dispatch(setTokens({ accessToken: 'b' }));
-    expect(localStorage.getItem(storageKeys.accessToken)).toBe('b');
-
     store.dispatch(clearSession());
     expect(store.getState().auth.account).toBeNull();
-    expect(store.getState().auth.token).toBeNull();
-    expect(localStorage.getItem(storageKeys.accessToken)).toBeNull();
+    expect(selectIsAuthenticated(store.getState())).toBe(false);
+    expect(localStorage.getItem(storageKeys.account)).toBeNull();
   });
 
   it('loginUser pending/fulfilled/rejected', async () => {
@@ -55,16 +54,14 @@ describe('authSlice', () => {
       data: {
         data: {
           account: { accountId: '1', email: 'a@b.com' },
-          accessToken: 'access',
-          refreshToken: 'refresh',
         },
       },
     });
 
     await store.dispatch(loginUser({ email: 'a@b.com', password: 'x' }));
-    expect(store.getState().auth.token).toBe('access');
     expect(store.getState().auth.account.email).toBe('a@b.com');
     expect(localStorage.getItem(storageKeys.account)).toContain('a@b.com');
+    expect(localStorage.getItem('recruit_access_token')).toBeNull();
 
     loginRequest.mockRejectedValueOnce({ response: { data: { message: 'bad creds' } } });
     await store.dispatch(loginUser({ email: 'a@b.com', password: 'x' }));
@@ -79,13 +76,11 @@ describe('authSlice', () => {
     const store = makeStore({
       auth: {
         account: { accountId: '1' },
-        token: 't',
         loading: false,
         error: null,
         initialized: true,
       },
     });
-    localStorage.setItem(storageKeys.accessToken, 't');
 
     getProfileRequest.mockResolvedValueOnce({
       data: { data: { accountId: '1', email: 'new@x.com' } },
@@ -95,15 +90,13 @@ describe('authSlice', () => {
 
     getProfileRequest.mockRejectedValueOnce({});
     await store.dispatch(fetchProfile());
-    expect(store.getState().auth.token).toBeNull();
-    expect(localStorage.getItem(storageKeys.accessToken)).toBeNull();
+    expect(store.getState().auth.account).toBeNull();
   });
 
   it('logoutUser clears state even when API fails', async () => {
     const store = makeStore({
       auth: {
         account: { accountId: '1' },
-        token: 't',
         loading: false,
         error: null,
         initialized: true,
@@ -112,7 +105,6 @@ describe('authSlice', () => {
     logoutRequest.mockRejectedValueOnce(new Error('down'));
     await store.dispatch(logoutUser());
     expect(store.getState().auth.account).toBeNull();
-    expect(store.getState().auth.token).toBeNull();
   });
 
   it('migrates legacy userId when loading saved account', async () => {

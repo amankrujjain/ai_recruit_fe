@@ -5,6 +5,14 @@ import { DEFAULT_AGENT_TONE, isHindiLanguage } from '@/lib/voiceAgent';
 export const EXPERIENCE_MAX_CAP = 15;
 export const MAX_ROUNDS = 3;
 
+export const DEFAULT_SCORING_RUBRIC = [
+  { name: 'Technical Skills', weight: 40 },
+  { name: 'Communication', weight: 20 },
+  { name: 'Problem Solving', weight: 20 },
+  { name: 'Experience Relevance', weight: 10 },
+  { name: 'Others', weight: 10 },
+];
+
 export const defaultRounds = [
   {
     name: 'AI Call',
@@ -32,6 +40,7 @@ export const emptyJobForm = {
   mandatorySkills: [],
   preferredSkills: [],
   aiMatchThreshold: 80,
+  scoringRubric: DEFAULT_SCORING_RUBRIC.map((item) => ({ ...item })),
   rounds: defaultRounds.map((round) => ({ ...round })),
   voiceId: '',
   voiceName: '',
@@ -63,7 +72,19 @@ const mapLegacyRounds = (job) => {
 };
 
 export function jobToForm(job) {
-  if (!job) return { ...emptyJobForm, rounds: defaultRounds.map((round) => ({ ...round })) };
+  if (!job) {
+    return {
+      ...emptyJobForm,
+      rounds: defaultRounds.map((round) => ({ ...round })),
+      scoringRubric: DEFAULT_SCORING_RUBRIC.map((item) => ({ ...item })),
+    };
+  }
+  const rubric = Array.isArray(job.scoringRubric) && job.scoringRubric.length
+    ? job.scoringRubric.map((item) => ({
+      name: item.name || '',
+      weight: Number(item.weight) || 0,
+    }))
+    : DEFAULT_SCORING_RUBRIC.map((item) => ({ ...item }));
   return {
     jobTitle: job.jobTitle || '',
     jobDescription: job.jobDescription || '',
@@ -76,6 +97,7 @@ export function jobToForm(job) {
     mandatorySkills: job.mandatorySkills || [],
     preferredSkills: job.preferredSkills || [],
     aiMatchThreshold: job.aiMatchThreshold ?? 80,
+    scoringRubric: rubric,
     rounds: mapLegacyRounds(job),
     voiceId: job.voiceId || '',
     voiceName: job.voiceName || '',
@@ -100,6 +122,10 @@ export function formToPayload(form) {
     mandatorySkills: form.mandatorySkills,
     preferredSkills: form.preferredSkills,
     aiMatchThreshold: Number(form.aiMatchThreshold),
+    scoringRubric: (form.scoringRubric || []).map((item) => ({
+      name: String(item.name || '').trim(),
+      weight: Number(item.weight),
+    })),
     rounds: (form.rounds || []).map((round) => ({
       name: round.name.trim(),
       roundType: round.roundType,
@@ -169,6 +195,13 @@ export function validateAiSetup(form) {
   ) {
     return 'CV match score must be an integer between 0 and 100';
   }
+  const rubric = form.scoringRubric || [];
+  if (!rubric.length) return 'Add at least one scoring criterion';
+  if (rubric.some((item) => !String(item.name || '').trim())) {
+    return 'Each scoring criterion needs a name';
+  }
+  const weightSum = rubric.reduce((acc, item) => acc + Number(item.weight || 0), 0);
+  if (weightSum !== 100) return `Scoring weights must sum to 100 (got ${weightSum})`;
   if (!form.voiceAccent) {
     return 'Select accent, gender, and language for the AI agent';
   }

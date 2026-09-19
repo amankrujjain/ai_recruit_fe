@@ -4,6 +4,7 @@ export const OutreachPipelineStatus = {
   EMAIL_SENT: 'EMAIL_SENT',
   INTERESTED: 'INTERESTED',
   DECLINED: 'DECLINED',
+  /** Booked slot only — not call outcome / interview progress (C3). */
   SCHEDULED: 'SCHEDULED',
   FAILED: 'FAILED',
 };

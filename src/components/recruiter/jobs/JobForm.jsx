@@ -273,6 +273,80 @@ function AiSetupFields({ form, setForm, voices, voicesLoading }) {
         </p>
       </div>
 
+      <div className="space-y-3 rounded-xl border border-border p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Interview scoring rubric</h3>
+            <p className="mt-0.5 text-xs text-muted">
+              Criteria and weights for this job (must total 100%). Prefills from org defaults.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setForm((f) => ({
+              ...f,
+              scoringRubric: [
+                ...(f.scoringRubric || []),
+                { name: `Criterion ${(f.scoringRubric || []).length + 1}`, weight: 0 },
+              ],
+            }))}
+          >
+            Add criterion
+          </Button>
+        </div>
+        <div className="space-y-2">
+          {(form.scoringRubric || []).map((item, index) => (
+            <div key={`rubric-${index}`} className="grid gap-2 sm:grid-cols-[1fr_110px_auto]">
+              <Input
+                aria-label={`Criterion ${index + 1} name`}
+                value={item.name}
+                onChange={(e) => setForm((f) => ({
+                  ...f,
+                  scoringRubric: f.scoringRubric.map((row, i) => (
+                    i === index ? { ...row, name: e.target.value } : row
+                  )),
+                }))}
+              />
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                aria-label={`Criterion ${index + 1} weight`}
+                value={item.weight}
+                onChange={(e) => setForm((f) => ({
+                  ...f,
+                  scoringRubric: f.scoringRubric.map((row, i) => (
+                    i === index
+                      ? { ...row, weight: e.target.value === '' ? '' : Number(e.target.value) }
+                      : row
+                  )),
+                }))}
+              />
+              {(form.scoringRubric || []).length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setForm((f) => ({
+                    ...f,
+                    scoringRubric: f.scoringRubric.filter((_, i) => i !== index),
+                  }))}
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted">
+          Weights total:{' '}
+          {(form.scoringRubric || []).reduce((acc, row) => acc + Number(row.weight || 0), 0)}
+          /100
+        </p>
+      </div>
+
       <JobAgentSetup form={form} setForm={setForm} voices={voices} voicesLoading={voicesLoading} />
     </div>
   );
@@ -405,12 +479,27 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
         setVoices(loadedVoices);
         const settings = orgData?.data?.settings || orgData?.data?.organizationSettings;
         setForm((current) => {
-          if (current.voiceId || !settings?.voiceId) return current;
+          let next = { ...current };
+          if (!initial && settings && !(current.scoringRubric?.length > 0 && isJobFormDirty(current, baselineRef.current))) {
+            const fromOrg = [
+              { name: 'Technical Skills', weight: Number(settings.scoreTechnical ?? 40) },
+              { name: 'Communication', weight: Number(settings.scoreCommunication ?? 20) },
+              { name: 'Problem Solving', weight: Number(settings.scoreProblemSolving ?? 20) },
+              { name: 'Experience Relevance', weight: Number(settings.scoreExperience ?? 10) },
+              { name: 'Others', weight: Number(settings.scoreOthers ?? 10) },
+            ];
+            const sum = fromOrg.reduce((acc, row) => acc + row.weight, 0);
+            if (sum === 100) next = { ...next, scoringRubric: fromOrg };
+          }
+          if (current.voiceId || !settings?.voiceId) {
+            if (!isJobFormDirty(current, baselineRef.current)) baselineRef.current = next;
+            return next;
+          }
           const match = loadedVoices.find((voice) => voice.voiceId === settings.voiceId);
-          const next = match
-            ? { ...current, ...voiceToAgentFields(match) }
+          next = match
+            ? { ...next, ...voiceToAgentFields(match) }
             : {
-              ...current,
+              ...next,
               voiceId: settings.voiceId,
               voiceName: settings.voiceName || current.voiceName,
               interviewLanguage: settings.interviewLanguage || current.interviewLanguage,

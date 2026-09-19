@@ -1031,6 +1031,9 @@ export function OrgSettingsForm() {
               <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="flex flex-col gap-3 px-6 pb-4 pt-5 sm:flex-row sm:items-start sm:justify-between">
                   <SectionTitle icon={BrainCircuit} number="4" title="Scoring Preferences" />
+                  <p className="mt-1 text-xs text-muted sm:text-right">
+                    Defaults for new jobs only — each job owns its interview rubric.
+                  </p>
                   <div className="flex shrink-0 rounded-lg bg-slate-100 p-1">
                     {['default', 'custom'].map((mode) => (
                       <button

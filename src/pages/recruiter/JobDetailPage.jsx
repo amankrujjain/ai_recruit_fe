@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/Button';
 import { PaginationBar } from '@/components/super-admin/PaginationBar';
 import { JobDetailHeader } from '@/components/recruiter/jobs/JobDetailHeader';
 import { JobOverviewTab } from '@/components/recruiter/jobs/JobOverviewTab';
-import { JobWorkflowTab } from '@/components/recruiter/jobs/JobWorkflowTab';
+import { OutreachTab } from '@/components/recruiter/jobs/OutreachTab';
+import { InterviewsTab } from '@/components/recruiter/jobs/InterviewsTab';
+import { DecisionsTab } from '@/components/recruiter/jobs/DecisionsTab';
 import { FileUploadZone } from '@/components/recruiter/candidates/FileUploadZone';
 import { CandidateTable } from '@/components/recruiter/candidates/CandidateTable';
 import { CandidatesEligibilityBar } from '@/components/recruiter/candidates/CandidatesEligibilityBar';
@@ -56,7 +58,42 @@ const TABS = [
 
 const STATUS_POLL_MS = 2000;
 const STATUS_POLL_MAX_MS = 120000;
-const MATCH_FOLLOWUP_MS = 5000;
+const MATCH_POLL_MAX_MS = 120000;
+
+const failedFilesFromStatus = (status) =>
+  (status?.files || [])
+    .filter((f) => f.processingStatus === 'FAILED' || f.failureReason || f.failureCode)
+    .map((f) => ({
+      resumeFileId: f.resumeFileId,
+      fileName: f.fileName,
+      failureCode: f.failureCode,
+      failureReason: f.failureReason,
+    }));
+
+const collectResumeFileIds = (payload = {}) => {
+  const ids = [
+    ...(Array.isArray(payload.resumeFileIds) ? payload.resumeFileIds : []),
+    ...(payload.resumeFileId ? [payload.resumeFileId] : []),
+  ];
+  return ids.filter(Boolean);
+};
+
+const isMatchingComplete = (status) => {
+  if (!status?.done) return false;
+  if ((status.matchingPending ?? 0) > 0) return false;
+  const files = status.files || [];
+  const awaitingScore = files.some((file) => (
+    file.processingStatus === 'COMPLETED'
+    && file.candidateId
+    && file.overallMatch == null
+    && !file.matchingDone
+  ));
+  if (awaitingScore) return false;
+  if ((status.completed ?? 0) > 0 && (status.matched ?? 0) === 0 && files.length === 0) {
+    return Boolean(status.matchingDone);
+  }
+  return status.matchingDone !== false;
+};
 
 export function JobDetailPage() {
   const { jobId } = useParams();
@@ -83,8 +120,13 @@ export function JobDetailPage() {
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [invitingId, setInvitingId] = useState(null);
   const stopPollRef = useRef(null);
+  const watchedIdsRef = useRef([]);
+  const itemsRef = useRef(items);
+  const parseProgressRef = useRef(parseProgress);
   const pageRef = useRef(page);
   pageRef.current = page;
+  itemsRef.current = items;
+  parseProgressRef.current = parseProgress;
 
   const loadCandidates = useCallback(() => {
     return dispatch(fetchCandidates({
@@ -103,21 +145,25 @@ export function JobDetailPage() {
   }, []);
 
   /**
-   * Poll lightweight resume status every 2s.
-   * When parse batch is done → refresh candidate list once (+ one delayed refresh for AI match scores).
+   * Phase 1: poll resume parse status.
+   * Phase 2: after parse done, poll until AI match scores ready (or timeout).
    */
   const watchResumeParse = useCallback((resumeFileIds, fileName) => {
     stopPolling();
 
-    const ids = Array.isArray(resumeFileIds) ? resumeFileIds.filter(Boolean) : [];
+    const incoming = Array.isArray(resumeFileIds) ? resumeFileIds.filter(Boolean) : [];
+    const ids = [...new Set([...watchedIdsRef.current, ...incoming])];
+    watchedIdsRef.current = ids;
     if (!ids.length) {
       loadCandidates();
       return;
     }
 
     const startedAt = Date.now();
+    let scoringStartedAt = null;
     let inFlight = false;
     let finished = false;
+    let phase = 'parsing';
 
     setParseProgress({
       active: true,
@@ -126,75 +172,173 @@ export function JobDetailPage() {
       percent: 15,
       completed: 0,
       failed: 0,
+      matched: 0,
       total: ids.length,
+      failedFiles: [],
       message: `Parsing ${fileName || 'resume'}…`,
     });
 
-    const finish = async (status) => {
-      if (finished) return;
-      finished = true;
-      stopPolling();
+    const clearBannerSoon = () => {
+      setTimeout(() => setParseProgress(null), 1500);
+    };
 
-      const failedAll = status.failed > 0 && status.completed === 0;
+    const finishAllFailed = (status) => {
+      finished = true;
+      watchedIdsRef.current = [];
+      stopPolling();
       setParseProgress({
         active: false,
-        phase: failedAll ? 'failed' : 'done',
+        phase: 'failed',
         fileName,
         percent: 100,
-        completed: status.completed,
-        failed: status.failed,
-        total: status.total,
-        message: failedAll
-          ? 'Resume parsing failed'
-          : status.failed
-            ? `Parsed with ${status.failed} failure(s) — updating list`
-            : 'Parsing complete — updating candidate list',
+        completed: status.completed ?? 0,
+        failed: status.failed ?? 0,
+        matched: 0,
+        total: status.total ?? ids.length,
+        failedFiles: failedFilesFromStatus(status),
+        message: 'Resume parsing failed',
       });
+      toast.error('Resume parsing failed');
+      clearBannerSoon();
+    };
+
+    const finishScoring = async (status, { timedOut = false } = {}) => {
+      if (finished) return;
+      finished = true;
+      watchedIdsRef.current = [];
+      stopPolling();
 
       await loadCandidates();
 
-      if (failedAll) {
-        toast.error('Resume parsing failed');
+      setParseProgress({
+        active: false,
+        phase: 'done',
+        fileName,
+        percent: 100,
+        completed: status.completed ?? 0,
+        failed: status.failed ?? 0,
+        matched: status.matched ?? 0,
+        total: status.total ?? ids.length,
+        failedFiles: failedFilesFromStatus(status),
+        message: timedOut
+          ? 'Scoring is taking longer — list refreshed'
+          : 'Candidates scored — list updated',
+      });
+
+      if (timedOut) {
+        toast.message('Scoring is taking longer than expected — list refreshed anyway');
       } else if (status.failed) {
-        toast.warning(`Parsed ${status.completed}, ${status.failed} failed`);
+        toast.warning(
+          `Scored ${status.matched ?? 0}; ${status.failed} file(s) failed to parse`
+        );
       } else {
-        toast.success('Parsing complete — candidate list updated');
+        toast.success('Scoring complete — candidate list updated');
       }
 
-      // AI_MATCH runs after parse; one follow-up list refresh for scores (not a poll loop)
-      setTimeout(() => {
-        loadCandidates();
-        setParseProgress(null);
-      }, MATCH_FOLLOWUP_MS);
+      clearBannerSoon();
+    };
+
+    const enterScoring = async (status) => {
+      phase = 'scoring';
+      scoringStartedAt = Date.now();
+      await loadCandidates();
+
+      if (status.failed && status.completed === 0) {
+        finishAllFailed(status);
+        return;
+      }
+
+      if (status.failed) {
+        toast.warning(`Parsed ${status.completed}, ${status.failed} failed`);
+      }
+
+      setParseProgress({
+        active: true,
+        phase: 'scoring',
+        fileName,
+        percent: 100,
+        completed: status.completed ?? 0,
+        failed: status.failed ?? 0,
+        matched: status.matched ?? 0,
+        total: status.total ?? ids.length,
+        failedFiles: failedFilesFromStatus(status),
+        message: 'Scoring candidates…',
+      });
+
+      if (isMatchingComplete(status)) {
+        await finishScoring(status);
+      }
     };
 
     const tick = async () => {
       if (finished || inFlight) return;
       inFlight = true;
       try {
-        if (Date.now() - startedAt >= STATUS_POLL_MAX_MS) {
-          await finish({ completed: 0, failed: 0, total: ids.length });
-          toast.message('Parsing is taking longer than expected — list refreshed anyway');
+        if (phase === 'parsing' && Date.now() - startedAt >= STATUS_POLL_MAX_MS) {
+          const { data } = await getResumeStatusRequest(jobId, ids);
+          const status = data.data;
+          if (status.done) {
+            await enterScoring(status);
+          } else {
+            finished = true;
+            watchedIdsRef.current = [];
+            stopPolling();
+            await loadCandidates();
+            toast.message('Parsing is taking longer than expected — list refreshed anyway');
+            setParseProgress(null);
+          }
+          return;
+        }
+
+        if (phase === 'scoring' && scoringStartedAt
+          && Date.now() - scoringStartedAt >= MATCH_POLL_MAX_MS) {
+          const { data } = await getResumeStatusRequest(jobId, ids);
+          await finishScoring(data.data, { timedOut: true });
           return;
         }
 
         const { data } = await getResumeStatusRequest(jobId, ids);
-        const status = data.data;
+        const status = data?.data;
+        if (!status) return;
 
+        if (phase === 'parsing') {
+          setParseProgress((prev) => ({
+            ...(prev || {}),
+            active: true,
+            phase: 'parsing',
+            fileName,
+            percent: status.percent ?? 15,
+            completed: status.completed ?? 0,
+            failed: status.failed ?? 0,
+            matched: status.matched ?? 0,
+            total: status.total ?? ids.length,
+            failedFiles: failedFilesFromStatus(status),
+            message: `Parsing… ${status.completed + status.failed}/${status.total} finished`,
+          }));
+
+          if (status.done) {
+            await enterScoring(status);
+          }
+          return;
+        }
+
+        // scoring phase
         setParseProgress((prev) => ({
           ...(prev || {}),
           active: true,
-          phase: 'parsing',
+          phase: 'scoring',
           fileName,
-          percent: status.percent ?? 15,
+          percent: 100,
           completed: status.completed ?? 0,
           failed: status.failed ?? 0,
+          matched: status.matched ?? 0,
           total: status.total ?? ids.length,
-          message: `Parsing… ${status.completed + status.failed}/${status.total} finished`,
+          failedFiles: failedFilesFromStatus(status),
+          message: 'Scoring candidates…',
         }));
 
-        if (status.done) {
-          await finish(status);
+        if (isMatchingComplete(status)) {
+          await finishScoring(status);
         }
       } catch {
         // Keep polling on transient errors
@@ -209,10 +353,12 @@ export function JobDetailPage() {
   }, [jobId, loadCandidates, stopPolling]);
 
   useEffect(() => {
+    watchedIdsRef.current = [];
     dispatch(fetchJob(jobId));
     dispatch(fetchDashboardStats({ jobId }));
     return () => {
       stopPolling();
+      watchedIdsRef.current = [];
       dispatch(clearCurrentJob());
       dispatch(clearCandidates());
     };
@@ -221,6 +367,35 @@ export function JobDetailPage() {
   useEffect(() => {
     if (tab === 'candidates') loadCandidates();
   }, [tab, loadCandidates]);
+
+  // Keep watching pending scores after refresh / reused upload / abandoned prior poll
+  useEffect(() => {
+    if (tab !== 'candidates') return undefined;
+
+    let cancelled = false;
+    let inFlight = false;
+    const startedAt = Date.now();
+
+    const tick = async () => {
+      if (cancelled || inFlight || parseProgressRef.current?.active) return;
+      if (stopPollRef.current) return;
+      const pending = itemsRef.current.some((row) => row.overallMatch == null);
+      if (!pending) return;
+      if (Date.now() - startedAt >= MATCH_POLL_MAX_MS) return;
+      inFlight = true;
+      try {
+        await loadCandidates();
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const timer = setInterval(tick, STATUS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [tab, jobId, loadCandidates]);
 
   const setTab = (id) => setSearchParams({ tab: id });
 
@@ -338,11 +513,14 @@ const handleActivate = () => {
         continue;
       }
       if (result.payload?.reused) {
-        reused += 1;
-        continue;
+        reused += result.payload.reusedCount || 1;
       }
-      if (result.payload?.resumeFileId) {
-        resumeFileIds.push(result.payload.resumeFileId);
+      const ids = collectResumeFileIds(result.payload);
+      for (const id of ids) {
+        if (!resumeFileIds.includes(id)) resumeFileIds.push(id);
+      }
+      if (result.payload?.reusedCount && !result.payload?.reused) {
+        reused += result.payload.reusedCount;
       }
     }
 
@@ -520,22 +698,14 @@ return (
               <CardContent className="p-0 pt-0">
                 <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                   <p className="text-xs text-muted">
-                    {selectedIds.size > 1
-                      ? `${selectedIds.size} selected — refresh list available`
-                      : selectedIds.size === 1
-                        ? 'Use the row Refresh button, or select more than one for Refresh list'
-                        : 'Select more than one candidate to enable Refresh list'}
+                    Refresh the list if a score is still pending after upload.
                   </p>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={loadCandidates}
-                    disabled={loading || selectedIds.size <= 1}
-                    title={
-                      selectedIds.size > 1
-                        ? 'Refresh selected candidates'
-                        : 'Select more than one candidate to refresh the list'
-                    }
+                    disabled={loading}
+                    title="Refresh candidate list"
                   >
                     Refresh list
                   </Button>
@@ -570,9 +740,9 @@ return (
           </div>
         )}
 
-        {(tab === 'outreach' || tab === 'interviews' || tab === 'decisions') && (
-          <JobWorkflowTab jobId={jobId} type={tab} />
-        )}
+        {tab === 'outreach' && <OutreachTab jobId={jobId} />}
+        {tab === 'interviews' && <InterviewsTab jobId={jobId} />}
+        {tab === 'decisions' && <DecisionsTab jobId={jobId} />}
       </div>
 
       <ConfirmDialog

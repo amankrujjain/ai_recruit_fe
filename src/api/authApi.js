@@ -1,18 +1,15 @@
 import apiClient from './client';
-import { storageKeys } from '@/lib/constants';
 
 export const loginRequest = (email, password) =>
   apiClient.post('/auth/login', { email, password });
 
 export const getProfileRequest = () => apiClient.get('/auth/me');
 
-export const refreshTokenRequest = (refreshToken) =>
-  apiClient.post('/auth/refresh', { refreshToken });
+export const refreshTokenRequest = () =>
+  apiClient.post('/auth/refresh', {});
 
-export const logoutRequest = () => {
-  const refreshToken = localStorage.getItem(storageKeys.refreshToken);
-  return apiClient.post('/auth/logout', { refreshToken });
-};
+export const logoutRequest = () =>
+  apiClient.post('/auth/logout', {});
 
 export const validateSignupRequest = (token) =>
   apiClient.get(`/auth/signup/${token}`);

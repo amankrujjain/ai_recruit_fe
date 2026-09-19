@@ -5,6 +5,7 @@ import {
   getOutreachDisplayStatus,
   OutreachDisplayStatus,
 } from '@/lib/candidateEligibility';
+import { formatRoundLabel } from '@/lib/formatRoundLabel';
 import { cn } from '@/lib/utils';
 
 function ScoreBar({ label, value, max = 100 }) {
@@ -134,27 +135,34 @@ export function RoundScoresCard({ evaluation, onOpenScorecard }) {
   );
 }
 
-export function RoundHistoryCard({ hasRound1Score, overallMatch }) {
-  const rounds = [
-    {
-      title: 'Round 1 — AI screen',
-      status: hasRound1Score ? 'Scored' : 'Not started',
-      score: hasRound1Score && overallMatch != null ? `${Math.round(Number(overallMatch))}%` : null,
-      tone: hasRound1Score ? 'success' : 'muted',
-    },
-    {
-      title: 'Round 2 — Technical',
-      status: 'Pending recruiter',
-      score: null,
-      tone: 'muted',
-    },
-    {
-      title: 'Round 3 — Culture fit',
-      status: 'Not started',
-      score: null,
-      tone: 'muted',
-    },
-  ];
+export function RoundHistoryCard({ hasRound1Score, overallMatch, candidateRounds }) {
+  const fromApi = Array.isArray(candidateRounds) && candidateRounds.length > 0
+    ? candidateRounds.map((item) => {
+      const label = formatRoundLabel(item.jobRound || { roundOrder: item.roundOrder }, item.status);
+      const scorecardScore = item.scoreSummary?.matchScore ?? item.scoreSummary?.overall;
+      return {
+        title: label,
+        status: item.status || 'PENDING',
+        score: scorecardScore != null
+          ? `${Math.round(Number(scorecardScore))}%`
+          : (hasRound1Score && item.jobRound?.roundOrder === 1 && overallMatch != null
+            ? `${Math.round(Number(overallMatch))}%`
+            : null),
+        tone: ['COMPLETED', 'CLEARED'].includes(String(item.status || '').toUpperCase())
+          ? 'success'
+          : 'muted',
+      };
+    })
+    : [
+      {
+        title: formatRoundLabel({ name: 'AI screen', roundOrder: 1 }, hasRound1Score ? 'COMPLETED' : 'PENDING'),
+        status: hasRound1Score ? 'Scored' : 'Not started',
+        score: hasRound1Score && overallMatch != null ? `${Math.round(Number(overallMatch))}%` : null,
+        tone: hasRound1Score ? 'success' : 'muted',
+      },
+    ];
+
+  const rounds = fromApi;
 
   return (
     <Card className="rounded-xl border-border shadow-none">

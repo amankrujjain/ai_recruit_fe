@@ -63,7 +63,7 @@ describe('enum / label map completeness', () => {
   });
 
   it('exports storage keys and API_BASE', () => {
-    expect(storageKeys.accessToken).toBe('recruit_access_token');
+    expect(storageKeys.account).toBe('recruit_account');
     expect(API_BASE).toBeTruthy();
   });
 });

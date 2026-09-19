@@ -42,5 +42,8 @@ export const getCandidateActivityRequest = (candidateJobId, params) =>
 export const rescheduleCallRequest = (callScheduleId, payload) =>
   apiClient.patch(`/recruitment/calls/${callScheduleId}/reschedule`, payload);
 
+export const redialCallRequest = (callScheduleId, payload = {}) =>
+  apiClient.post(`/recruitment/calls/${callScheduleId}/redial`, payload);
+
 export const cancelCallRequest = (callScheduleId) =>
   apiClient.delete(`/recruitment/calls/${callScheduleId}`);

@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { storageKeys } from '@/lib/constants';
 
 const requestHandlers = [];
 const responseHandlers = [];
@@ -66,13 +65,10 @@ describe('api client interceptors', () => {
     });
   });
 
-  it('attaches Bearer token only when present', async () => {
-    const without = await requestInterceptor({ headers: {} });
-    expect(without.headers.Authorization).toBeUndefined();
-
-    localStorage.setItem(storageKeys.accessToken, 'tok');
-    const withTok = await requestInterceptor({ headers: {} });
-    expect(withTok.headers.Authorization).toBe('Bearer tok');
+  it('does not attach Authorization header (cookie auth)', async () => {
+    const config = await requestInterceptor({ headers: {} });
+    expect(config.headers.Authorization).toBeUndefined();
+    expect(config.headers['Cache-Control']).toBe('no-cache');
   });
 
   it('skips refresh on auth paths', async () => {
@@ -121,10 +117,7 @@ describe('api client interceptors', () => {
   });
 
   it('refreshes once on 401 and retries original request', async () => {
-    localStorage.setItem(storageKeys.refreshToken, 'rt');
-    mockAxiosPost.mockResolvedValueOnce({
-      data: { data: { accessToken: 'new-access', refreshToken: 'new-rt' } },
-    });
+    mockAxiosPost.mockResolvedValueOnce({ data: { data: { refreshed: true } } });
     mockInstance.mockResolvedValueOnce({ data: { ok: true }, status: 200 });
 
     const result = await responseRejected({
@@ -134,21 +127,18 @@ describe('api client interceptors', () => {
     });
 
     expect(mockAxiosPost).toHaveBeenCalledTimes(1);
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'auth/setTokens',
-      payload: { accessToken: 'new-access', refreshToken: 'new-rt' },
-    });
+    expect(mockAxiosPost).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/refresh'),
+      {},
+      expect.objectContaining({ withCredentials: true })
+    );
     expect(result.data.ok).toBe(true);
     expect(mockInstance).toHaveBeenCalledWith(
-      expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer new-access' }),
-        _retry: true,
-      })
+      expect.objectContaining({ _retry: true })
     );
   });
 
   it('dedupes concurrent refresh calls', async () => {
-    localStorage.setItem(storageKeys.refreshToken, 'rt');
     let resolveRefresh;
     mockAxiosPost.mockImplementationOnce(
       () =>
@@ -169,24 +159,13 @@ describe('api client interceptors', () => {
       message: 'expired',
     });
 
-    resolveRefresh({ data: { data: { accessToken: 'shared' } } });
+    resolveRefresh({ data: { data: { refreshed: true } } });
     await Promise.all([p1, p2]);
     expect(mockAxiosPost).toHaveBeenCalledTimes(1);
   });
 
-  it('logs out when refresh token missing or response invalid', async () => {
-    await expect(
-      responseRejected({
-        config: { url: '/jobs', headers: {} },
-        response: { status: 401 },
-        message: 'expired',
-      })
-    ).rejects.toBeTruthy();
-    expect(dispatch).toHaveBeenCalledWith({ type: 'auth/clearSession' });
-
-    dispatch.mockClear();
-    localStorage.setItem(storageKeys.refreshToken, 'rt');
-    mockAxiosPost.mockResolvedValueOnce({ data: { data: {} } });
+  it('logs out when refresh fails', async () => {
+    mockAxiosPost.mockRejectedValueOnce(new Error('no cookie'));
     await expect(
       responseRejected({
         config: { url: '/jobs', headers: {} },
@@ -239,36 +218,12 @@ describe('api client interceptors', () => {
     ).rejects.toBeTruthy();
   });
 
-  it('creates Authorization header object when headers are missing', async () => {
-    const withoutHeaders = await requestInterceptor({});
-    expect(withoutHeaders.headers).toBeUndefined();
-
-    localStorage.setItem(storageKeys.accessToken, 'tok');
-    const withTok = await requestInterceptor({});
-    expect(withTok.headers.Authorization).toBe('Bearer tok');
-
-    localStorage.setItem(storageKeys.refreshToken, 'rt');
-    mockAxiosPost.mockResolvedValueOnce({
-      data: { data: { accessToken: 'new' } },
-    });
-    mockInstance.mockResolvedValueOnce({ data: { ok: true } });
-    await responseRejected({
-      config: { url: '/jobs' },
-      response: { status: 401 },
-      message: 'expired',
-    });
-    expect(mockInstance).toHaveBeenCalledWith(
-      expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer new' }),
-      })
-    );
-  });
-
   it('exports shouldSkipRefresh and isSessionDeadStatus helpers', async () => {
     const { shouldSkipRefresh, isSessionDeadStatus } = await import('@/api/client');
     expect(shouldSkipRefresh(null)).toBe(false);
     expect(shouldSkipRefresh({ url: undefined })).toBe(false);
     expect(shouldSkipRefresh({ url: '/auth/signup/abc' })).toBe(true);
+    expect(shouldSkipRefresh({ url: '/auth/me' })).toBe(true);
     expect(isSessionDeadStatus(401)).toBe(true);
     expect(isSessionDeadStatus(500)).toBe(false);
     expect(isSessionDeadStatus(403, 'ok')).toBe(false);
