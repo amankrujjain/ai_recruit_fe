@@ -21,12 +21,16 @@ vi.mock('@/api/authApi', () => ({
   logoutRequest: vi.fn(),
 }));
 
+vi.mock('@/api/client', () => ({
+  refreshSession: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { getProfileRequest } from '@/api/authApi';
+import { refreshSession } from '@/api/client';
 
 const authState = (overrides = {}) => ({
   auth: {
     account: null,
-    token: null,
     loading: false,
     error: null,
     initialized: true,
@@ -55,7 +59,7 @@ describe('route guards', () => {
         </Route>
         <Route path="/login" element={<div>Login page</div>} />
       </Routes>,
-      { preloadedState: authState({ token: null }), route: '/' }
+      { preloadedState: authState({ account: null }), route: '/' }
     );
     expect(screen.getByText('Login page')).toBeInTheDocument();
   });
@@ -67,7 +71,7 @@ describe('route guards', () => {
           <Route path="/" element={<div>Secret</div>} />
         </Route>
       </Routes>,
-      { preloadedState: authState({ token: 't' }), route: '/' }
+      { preloadedState: authState({ account: { accountId: '1' } }), route: '/' }
     );
     expect(screen.getByText('Secret')).toBeInTheDocument();
   });
@@ -92,7 +96,7 @@ describe('route guards', () => {
         </Route>
         <Route path="/dashboard" element={<div>Dash</div>} />
       </Routes>,
-      { preloadedState: authState({ token: 't' }), route: '/login' }
+      { preloadedState: authState({ account: { accountId: '1' } }), route: '/login' }
     );
     expect(screen.getByText('Dash')).toBeInTheDocument();
   });
@@ -104,7 +108,7 @@ describe('route guards', () => {
           <Route path="/login" element={<div>Login form</div>} />
         </Route>
       </Routes>,
-      { preloadedState: authState({ token: null, initialized: true }), route: '/login' }
+      { preloadedState: authState({ account: null, initialized: true }), route: '/login' }
     );
     expect(screen.getByText('Login form')).toBeInTheDocument();
   });
@@ -247,27 +251,33 @@ function AuthInitProbe() {
 }
 
 describe('useAuthInit', () => {
-  it('fetches profile when token exists then marks initialized', async () => {
+  it('fetches profile when cookies are valid then marks initialized', async () => {
     getProfileRequest.mockResolvedValueOnce({
       data: { data: { accountId: '1', email: 'a@b.com' } },
     });
     const { store } = renderWithProviders(<AuthInitProbe />, {
       preloadedState: authState({
-        token: 't',
         initialized: false,
-        account: { accountId: '1' },
+        account: null,
       }),
     });
     await waitFor(() => expect(store.getState().auth.initialized).toBe(true));
     expect(getProfileRequest).toHaveBeenCalled();
+    expect(store.getState().auth.account.email).toBe('a@b.com');
   });
 
-  it('skips profile fetch when no token', async () => {
-    getProfileRequest.mockClear();
+  it('tries refresh then profile when first me fails', async () => {
+    getProfileRequest
+      .mockRejectedValueOnce(new Error('expired'))
+      .mockResolvedValueOnce({
+        data: { data: { accountId: '1', email: 'a@b.com' } },
+      });
+    refreshSession.mockResolvedValueOnce(undefined);
     const { store } = renderWithProviders(<AuthInitProbe />, {
-      preloadedState: authState({ token: null, initialized: false }),
+      preloadedState: authState({ account: null, initialized: false }),
     });
     await waitFor(() => expect(store.getState().auth.initialized).toBe(true));
-    expect(getProfileRequest).not.toHaveBeenCalled();
+    expect(refreshSession).toHaveBeenCalled();
+    expect(getProfileRequest).toHaveBeenCalledTimes(2);
   });
 });

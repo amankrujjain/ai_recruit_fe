@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Building2, CalendarDays, Clock3, LogOut, Zap } from 'lucide-react';
@@ -61,6 +61,8 @@ export function AdminOnboardingPage() {
   const { account } = useSelector(selectAuth);
   const { organization, loading, saving } = useSelector(selectAdminOrg);
   const [form, setForm] = useState(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const loggingOutRef = useRef(false);
 
   useEffect(() => {
     dispatch(fetchMyOrganization());
@@ -95,8 +97,16 @@ export function AdminOnboardingPage() {
   };
 
   const handleLogout = async () => {
-    await dispatch(logoutUser());
-    navigate('/login', { replace: true });
+    if (loggingOutRef.current) return;
+    loggingOutRef.current = true;
+    setLoggingOut(true);
+    try {
+      await dispatch(logoutUser());
+      navigate('/login', { replace: true });
+    } finally {
+      loggingOutRef.current = false;
+      setLoggingOut(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -140,9 +150,15 @@ export function AdminOnboardingPage() {
             <p className="text-xs text-muted">Finish setup to unlock your workspace</p>
           </div>
         </div>
-        <Button type="button" variant="outline" className="gap-2" onClick={handleLogout}>
+        <Button
+          type="button"
+          variant="outline"
+          className="gap-2"
+          disabled={loggingOut}
+          onClick={handleLogout}
+        >
           <LogOut className="h-4 w-4" />
-          Log out
+          {loggingOut ? 'Signing out…' : 'Log out'}
         </Button>
       </header>
 

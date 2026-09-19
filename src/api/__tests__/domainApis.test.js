@@ -19,7 +19,6 @@ describe('api domain modules', () => {
 
   it('authApi covers all endpoints and invite aliases', async () => {
     const auth = await import('@/api/authApi');
-    const { storageKeys } = await import('@/lib/constants');
 
     auth.loginRequest('a@b.com', 'x');
     expect(apiClient.post).toHaveBeenCalledWith('/auth/login', {
@@ -30,14 +29,11 @@ describe('api domain modules', () => {
     auth.getProfileRequest();
     expect(apiClient.get).toHaveBeenCalledWith('/auth/me');
 
-    auth.refreshTokenRequest('rt');
-    expect(apiClient.post).toHaveBeenCalledWith('/auth/refresh', { refreshToken: 'rt' });
+    auth.refreshTokenRequest();
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/refresh', {});
 
-    localStorage.setItem(storageKeys.refreshToken, 'stored-rt');
     auth.logoutRequest();
-    expect(apiClient.post).toHaveBeenCalledWith('/auth/logout', {
-      refreshToken: 'stored-rt',
-    });
+    expect(apiClient.post).toHaveBeenCalledWith('/auth/logout', {});
 
     auth.validateSignupRequest('tok');
     expect(apiClient.get).toHaveBeenCalledWith('/auth/signup/tok');

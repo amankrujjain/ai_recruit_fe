@@ -358,7 +358,7 @@ describe('ResumeProcessingBanner', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders active, done, and failed phases', () => {
+  it('renders active, done, failed, and scoring phases', () => {
     const { rerender } = render(
       <ResumeProcessingBanner
         progress={{
@@ -380,6 +380,21 @@ describe('ResumeProcessingBanner', () => {
     rerender(
       <ResumeProcessingBanner
         progress={{
+          active: true,
+          phase: 'scoring',
+          message: 'Scoring candidates…',
+          completed: 2,
+          matched: 1,
+          total: 2,
+        }}
+      />
+    );
+    expect(screen.getByText('Scoring candidates…')).toBeInTheDocument();
+    expect(screen.getByText(/1\/2 scored/i)).toBeInTheDocument();
+
+    rerender(
+      <ResumeProcessingBanner
+        progress={{
           active: false,
           phase: 'done',
           message: 'All done',
@@ -392,10 +407,17 @@ describe('ResumeProcessingBanner', () => {
 
     rerender(
       <ResumeProcessingBanner
-        progress={{ active: false, phase: 'failed', message: 'Parse failed' }}
+        progress={{
+          active: false,
+          phase: 'failed',
+          message: 'Parse failed',
+          failedFiles: [{ resumeFileId: '1', fileName: 'bad.pdf', failureReason: 'missing email' }],
+        }}
       />
     );
     expect(screen.getByText('Parse failed')).toBeInTheDocument();
+    expect(screen.getByText(/bad\.pdf/i)).toBeInTheDocument();
+    expect(screen.getByText(/missing email/i)).toBeInTheDocument();
   });
 });
 

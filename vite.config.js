@@ -12,7 +12,22 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': { target: 'http://localhost:3000', changeOrigin: true, xfwd: true },
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        xfwd: true,
+        // Forward Set-Cookie from API so browser stores them on :5173
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            const cookies = proxyRes.headers['set-cookie'];
+            if (cookies) {
+              proxyRes.headers['set-cookie'] = cookies.map((c) =>
+                c.replace(/;\s*Domain=[^;]+/i, '')
+              );
+            }
+          });
+        },
+      },
     },
   },
   test: {

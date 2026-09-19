@@ -16,7 +16,7 @@ vi.mock('@/components/ui/Toaster', () => ({
 vi.mock('@/store', () => ({
   default: {
     getState: () => ({
-      auth: { token: null, account: null, initialized: true, loading: false, error: null },
+      auth: { account: null, initialized: true, loading: false, error: null },
     }),
     dispatch: vi.fn(),
     subscribe: vi.fn(),

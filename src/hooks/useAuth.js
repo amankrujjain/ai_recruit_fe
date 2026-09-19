@@ -1,19 +1,38 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfile, setInitialized, selectAuth } from '@/store/slices/authSlice';
-import { storageKeys } from '@/lib/constants';
+import { refreshSession } from '@/api/client';
 
+/**
+ * Bootstrap session from httpOnly cookies:
+ * 1. /auth/me (access cookie)
+ * 2. on failure, refresh once then /auth/me again
+ */
 export function useAuthInit() {
   const dispatch = useDispatch();
-  const { token } = useSelector(selectAuth);
 
   useEffect(() => {
+    let cancelled = false;
+
     const init = async () => {
-      if (token) await dispatch(fetchProfile());
-      dispatch(setInitialized());
+      try {
+        const result = await dispatch(fetchProfile());
+        if (fetchProfile.fulfilled.match(result)) {
+          if (!cancelled) dispatch(setInitialized());
+          return;
+        }
+        await refreshSession();
+        await dispatch(fetchProfile());
+      } catch {
+        // unauthenticated — cookies missing/expired
+      } finally {
+        if (!cancelled) dispatch(setInitialized());
+      }
     };
+
     init();
-  }, [dispatch, token]);
+    return () => { cancelled = true; };
+  }, [dispatch]);
 }
 
 export function useAuth() {

@@ -748,7 +748,7 @@ describe('JobDetailPage', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Upload failed'));
   });
 
-  it('upload resume reused links candidate without polling', async () => {
+  it('upload resume reused without resumeFileId refreshes the list', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     uploadResumeRequest.mockResolvedValueOnce({ data: { data: { reused: true } } });
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
@@ -758,6 +758,34 @@ describe('JobDetailPage', () => {
       expect(toast.success).toHaveBeenCalledWith('1 resume(s) already on file — linked to this job')
     );
     expect(getResumeStatusRequest).not.toHaveBeenCalled();
+  });
+
+  it('upload resume reused with resumeFileId still polls for scores', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    uploadResumeRequest.mockResolvedValueOnce({
+      data: { data: { reused: true, resumeFileId: 'rf-old' } },
+    });
+    getResumeStatusRequest.mockResolvedValue({
+      data: {
+        data: {
+          done: true,
+          completed: 1,
+          failed: 0,
+          total: 1,
+          percent: 100,
+          matchingDone: true,
+          matched: 1,
+          files: [],
+        },
+      },
+    });
+    renderDetail('/recruiter/jobs/job-1?tab=candidates');
+
+    await user.click(await screen.findByRole('button', { name: 'Upload resume' }));
+    await waitFor(() => expect(getResumeStatusRequest).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Scoring complete — candidate list updated')
+    );
   });
 
   it('upload resume without resumeFileId refreshes candidates', async () => {
@@ -770,13 +798,24 @@ describe('JobDetailPage', () => {
     await waitFor(() => expect(listCandidatesRequest.mock.calls.length).toBeGreaterThan(callsBefore));
   });
 
-  it('upload resume starts polling and completes successfully', async () => {
+  it('upload resume starts polling, scores, then completes', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     uploadResumeRequest.mockResolvedValueOnce({
       data: { data: { resumeFileId: 'rf-1' } },
     });
     getResumeStatusRequest.mockResolvedValue({
-      data: { data: { done: true, completed: 1, failed: 0, total: 1, percent: 100 } },
+      data: {
+        data: {
+          done: true,
+          completed: 1,
+          failed: 0,
+          total: 1,
+          percent: 100,
+          matchingDone: true,
+          matched: 1,
+          files: [],
+        },
+      },
     });
 
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
@@ -786,13 +825,65 @@ describe('JobDetailPage', () => {
       expect(toast.message).toHaveBeenCalledWith('Upload complete — parsing started')
     );
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith('Parsing complete — candidate list updated')
+      expect(toast.success).toHaveBeenCalledWith('Scoring complete — candidate list updated')
     );
 
     await act(async () => {
-      vi.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(2000);
     });
     await waitFor(() => expect(captured.resumeProcessingBanner?.progress).toBeNull());
+  });
+
+  it('watchResumeParse stays in scoring until matchingDone', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    uploadResumeRequest.mockResolvedValueOnce({
+      data: { data: { resumeFileId: 'rf-score' } },
+    });
+    getResumeStatusRequest
+      .mockResolvedValueOnce({
+        data: {
+          data: {
+            done: true,
+            completed: 1,
+            failed: 0,
+            total: 1,
+            percent: 100,
+            matchingDone: false,
+            matched: 0,
+            files: [],
+          },
+        },
+      })
+      .mockResolvedValue({
+        data: {
+          data: {
+            done: true,
+            completed: 1,
+            failed: 0,
+            total: 1,
+            percent: 100,
+            matchingDone: true,
+            matched: 1,
+            files: [],
+          },
+        },
+      });
+
+    renderDetail('/recruiter/jobs/job-1?tab=candidates');
+    await user.click(await screen.findByRole('button', { name: 'Upload resume' }));
+
+    await waitFor(() =>
+      expect(captured.resumeProcessingBanner?.progress?.phase).toBe('scoring')
+    );
+    expect(captured.resumeProcessingBanner?.progress?.message).toMatch(/scoring candidates/i);
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Scoring complete — candidate list updated')
+    );
   });
 
   it('watchResumeParse handles partial failure', async () => {
@@ -800,8 +891,26 @@ describe('JobDetailPage', () => {
     uploadResumeRequest.mockResolvedValueOnce({
       data: { data: { resumeFileId: 'rf-2' } },
     });
-    getResumeStatusRequest.mockResolvedValueOnce({
-      data: { data: { done: true, completed: 1, failed: 1, total: 2, percent: 100 } },
+    getResumeStatusRequest.mockResolvedValue({
+      data: {
+        data: {
+          done: true,
+          completed: 1,
+          failed: 1,
+          total: 2,
+          percent: 100,
+          matchingDone: true,
+          matched: 1,
+          files: [
+            {
+              resumeFileId: 'rf-bad',
+              fileName: 'handbook.pdf',
+              processingStatus: 'FAILED',
+              failureReason: 'not a resume',
+            },
+          ],
+        },
+      },
     });
 
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
@@ -809,6 +918,9 @@ describe('JobDetailPage', () => {
 
     await waitFor(() =>
       expect(toast.warning).toHaveBeenCalledWith('Parsed 1, 1 failed')
+    );
+    await waitFor(() =>
+      expect(toast.warning).toHaveBeenCalledWith('Scored 1; 1 file(s) failed to parse')
     );
   });
 
@@ -818,13 +930,36 @@ describe('JobDetailPage', () => {
       data: { data: { resumeFileId: 'rf-3' } },
     });
     getResumeStatusRequest.mockResolvedValueOnce({
-      data: { data: { done: true, completed: 0, failed: 1, total: 1, percent: 100 } },
+      data: {
+        data: {
+          done: true,
+          completed: 0,
+          failed: 1,
+          total: 1,
+          percent: 100,
+          matchingDone: true,
+          matched: 0,
+          files: [
+            {
+              resumeFileId: 'rf-3',
+              fileName: 'bad.pdf',
+              processingStatus: 'FAILED',
+              failureReason: 'missing email',
+            },
+          ],
+        },
+      },
     });
 
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
     await user.click(await screen.findByRole('button', { name: 'Upload resume' }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Resume parsing failed'));
+    await waitFor(() =>
+      expect(captured.resumeProcessingBanner?.progress?.failedFiles?.[0]?.failureReason).toBe(
+        'missing email'
+      )
+    );
   });
 
   it('watchResumeParse recovers from transient poll errors then succeeds', async () => {
@@ -835,7 +970,18 @@ describe('JobDetailPage', () => {
     getResumeStatusRequest
       .mockRejectedValueOnce(new Error('network'))
       .mockResolvedValueOnce({
-        data: { data: { done: true, completed: 1, failed: 0, total: 1, percent: 100 } },
+        data: {
+          data: {
+            done: true,
+            completed: 1,
+            failed: 0,
+            total: 1,
+            percent: 100,
+            matchingDone: true,
+            matched: 1,
+            files: [],
+          },
+        },
       });
 
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
@@ -846,7 +992,7 @@ describe('JobDetailPage', () => {
     });
 
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith('Parsing complete — candidate list updated')
+      expect(toast.success).toHaveBeenCalledWith('Scoring complete — candidate list updated')
     );
   });
 
@@ -877,27 +1023,12 @@ describe('JobDetailPage', () => {
     );
   });
 
-  it('refresh list button stays disabled until more than one candidate is selected', async () => {
+  it('refresh list button is always available', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    listCandidatesRequest.mockResolvedValue({
-      data: {
-        data: [
-          candidateFixture,
-          { candidateJobId: 'cand-2', overallMatch: 88, candidate: { name: 'Grace Hopper' } },
-        ],
-        pagination: { page: 1, totalPages: 1, total: 2 },
-      },
-    });
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
 
     await screen.findByTestId('candidate-table');
     const refreshList = screen.getByRole('button', { name: 'Refresh list' });
-    expect(refreshList).toBeDisabled();
-
-    await user.click(screen.getByRole('button', { name: 'Toggle one' }));
-    expect(refreshList).toBeDisabled();
-
-    await user.click(screen.getByRole('button', { name: 'Toggle two' }));
     expect(refreshList).toBeEnabled();
 
     const callsBefore = listCandidatesRequest.mock.calls.length;
@@ -912,6 +1043,25 @@ describe('JobDetailPage', () => {
     await screen.findByTestId('candidate-table');
     const callsBefore = listCandidatesRequest.mock.calls.length;
     await user.click(screen.getByRole('button', { name: 'Refresh row' }));
+    await waitFor(() => expect(listCandidatesRequest.mock.calls.length).toBeGreaterThan(callsBefore));
+  });
+
+  it('polls the candidate list while match scores are pending', async () => {
+    listCandidatesRequest.mockResolvedValue({
+      data: {
+        data: [{ candidateJobId: 'cand-pending', overallMatch: null, candidate: { name: 'Pending Person' } }],
+        pagination: { page: 1, totalPages: 1, total: 1 },
+        eligibleCount: 0,
+      },
+    });
+    renderDetail('/recruiter/jobs/job-1?tab=candidates');
+    await screen.findByTestId('candidate-table');
+    const callsBefore = listCandidatesRequest.mock.calls.length;
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
     await waitFor(() => expect(listCandidatesRequest.mock.calls.length).toBeGreaterThan(callsBefore));
   });
 

@@ -6,14 +6,19 @@ import {
   createDecisionRequest,
   getCallRecordsRequest,
   getScorecardRequest,
+  inviteNextRoundRequest,
 } from '@/api/recruitmentApi';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   recommendationDescriptions,
   recommendationLabels,
   recommendationVariants,
+  getNextStepSuggestion,
+  hasRemainingAiRounds,
 } from '@/lib/recommendation';
+import { CandidateStatus } from '@/lib/candidateStatus';
 const SCORE_DIMENSIONS = [
   { key: 'technicalAlignment', label: 'Technical' },
   { key: 'communicationScore', label: 'Communication' },
@@ -134,22 +139,59 @@ export function InterviewScorecardDrawer({
   candidateJobId,
   candidateName,
   onOpenChange,
+  jobRounds = [],
+  candidateRounds = [],
+  candidateStatus,
+  onDecisionSaved,
 }) {
   const titleId = useId();
   const [loading, setLoading] = useState(false);
   const [scorecard, setScorecard] = useState(null);
   const [callRecords, setCallRecords] = useState([]);
   const [decisionLoading, setDecisionLoading] = useState(false);
+  const [confirmHire, setConfirmHire] = useState(false);
 
   const close = () => onOpenChange?.(false);
+  const locked = [CandidateStatus.HIRED, CandidateStatus.REJECTED_MANUALLY].includes(candidateStatus);
+  const nextStep = getNextStepSuggestion({
+    jobRounds,
+    candidateRounds,
+    evaluation: scorecard?.callRecord?.evaluation,
+    scoringStatus: scorecard?.summary?.scoringStatus,
+    scoringReason: scorecard?.summary?.scoringReason,
+  });
+  const remainingAi = hasRemainingAiRounds(jobRounds, candidateRounds);
 
   const saveDecision = async (decision) => {
     setDecisionLoading(true);
     try {
       await createDecisionRequest(candidateJobId, { decision });
-      toast.success(decision === 'REJECTED' ? 'Candidate rejected' : 'Candidate marked selected');
+      toast.success(
+        decision === 'REJECTED'
+          ? 'Candidate rejected'
+          : decision === 'HIRED'
+            ? 'Candidate hired'
+            : 'Decision saved'
+      );
+      onDecisionSaved?.();
+      close();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save decision');
+    } finally {
+      setDecisionLoading(false);
+    }
+  };
+
+  const inviteNext = async () => {
+    if (!nextStep.nextRound?.jobRoundId) return;
+    setDecisionLoading(true);
+    try {
+      await inviteNextRoundRequest(candidateJobId, nextStep.nextRound.jobRoundId);
+      toast.success('Next-round invite queued');
+      onDecisionSaved?.();
+      close();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to invite candidate');
     } finally {
       setDecisionLoading(false);
     }
@@ -290,14 +332,21 @@ export function InterviewScorecardDrawer({
                 )}
               </section>
 
-              {/* Dimension scores */}
-              {evaluation && (
+              {/* Dimension scores — prefer job rubric criteria when present */}
+              {(evaluation || summary?.criterionScores) && (
                 <section className="space-y-3">
                   <h3 className="text-sm font-semibold text-foreground">Scores</h3>
                   <div className="space-y-3 rounded-xl border border-border p-4">
-                    {SCORE_DIMENSIONS.map(({ key, label }) => (
-                      <ScoreBar key={key} label={label} value={evaluation[key]} />
-                    ))}
+                    {summary?.criterionScores && typeof summary.criterionScores === 'object'
+                      ? Object.entries(summary.criterionScores).map(([label, value]) => (
+                        <ScoreBar key={label} label={label} value={value} />
+                      ))
+                      : SCORE_DIMENSIONS.map(({ key, label }) => (
+                        <ScoreBar key={key} label={label} value={evaluation?.[key]} />
+                      ))}
+                    {summary?.overallFromRubric != null && (
+                      <ScoreBar label="Weighted overall" value={summary.overallFromRubric} />
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs text-muted">
                     <p>
@@ -309,13 +358,13 @@ export function InterviewScorecardDrawer({
                     <p>
                       Notice:{' '}
                       <span className="font-medium text-foreground">
-                        {evaluation.noticePeriod || '—'}
+                        {evaluation?.noticePeriod || summary.noticePeriod || '—'}
                       </span>
                     </p>
                     <p className="col-span-2">
                       Salary expectations:{' '}
                       <span className="font-medium text-foreground">
-                        {evaluation.salaryExpectations || '—'}
+                        {evaluation?.salaryExpectations || summary.salaryExpectations || '—'}
                       </span>
                     </p>
                   </div>
@@ -422,24 +471,42 @@ export function InterviewScorecardDrawer({
         <footer className="border-t border-border px-5 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                size="sm"
-                disabled={decisionLoading}
-                onClick={() => saveDecision('SELECTED')}
-              >
-                Mark selected
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                disabled={decisionLoading}
-                onClick={() => saveDecision('REJECTED')}
-              >
-                Reject
-              </Button>
+              {locked ? (
+                <span className="text-xs text-muted">Decision complete</span>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={decisionLoading}
+                    onClick={() => {
+                      if (remainingAi) setConfirmHire(true);
+                      else saveDecision('HIRED');
+                    }}
+                  >
+                    Hired
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    disabled={decisionLoading}
+                    onClick={() => saveDecision('REJECTED')}
+                  >
+                    Reject
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={decisionLoading || !nextStep.canInviteNext}
+                    onClick={inviteNext}
+                  >
+                    {nextStep.canInviteNext ? nextStep.label : 'Next round'}
+                  </Button>
+                </>
+              )}
             </div>
             <Button type="button" variant="outline" size="sm" onClick={close}>
               Close
@@ -447,6 +514,21 @@ export function InterviewScorecardDrawer({
           </div>
         </footer>
       </aside>
+
+      <ConfirmDialog
+        open={confirmHire}
+        title="Hire before remaining AI rounds?"
+        description="AI rounds remain for this job. Hiring now will skip the remaining AI screening rounds."
+        confirmLabel="Hire anyway"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setConfirmHire(false);
+          saveDecision('HIRED');
+        }}
+        onOpenChange={(openState) => {
+          if (!openState) setConfirmHire(false);
+        }}
+      />
     </div>,
     document.body
   );

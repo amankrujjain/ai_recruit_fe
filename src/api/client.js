@@ -1,9 +1,10 @@
 import axios from 'axios';
-import { API_BASE, storageKeys } from '@/lib/constants';
+import { API_BASE } from '@/lib/constants';
 import { getStore } from './storeAccess';
 
 const apiClient = axios.create({
   baseURL: API_BASE,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -14,6 +15,7 @@ const AUTH_NO_REFRESH = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/signup',
+  '/auth/me',
 ];
 
 const shouldSkipRefresh = (config) => {
@@ -36,37 +38,18 @@ const isSessionDeadStatus = (status, message = '') => {
 
 let refreshPromise = null;
 
-/** Plain action types — avoids importing authSlice (which imports authApi → client). */
-const SET_TOKENS = 'auth/setTokens';
 const CLEAR_SESSION = 'auth/clearSession';
 
-const refreshAccessToken = async () => {
-  const refreshToken = localStorage.getItem(storageKeys.refreshToken);
-  if (!refreshToken) {
-    throw new Error('No refresh token');
+/** Silently refresh session cookies (Alignlie-style — empty body, credentials). */
+const refreshSession = async () => {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
+      .finally(() => {
+        refreshPromise = null;
+      });
   }
-
-  // Plain axios — avoid interceptor recursion on /auth/refresh
-  const { data } = await axios.post(
-    `${API_BASE}/auth/refresh`,
-    { refreshToken },
-    { headers: { 'Content-Type': 'application/json' } }
-  );
-
-  const payload = data?.data;
-  if (!payload?.accessToken) {
-    throw new Error('Invalid refresh response');
-  }
-
-  getStore().dispatch({
-    type: SET_TOKENS,
-    payload: {
-      accessToken: payload.accessToken,
-      refreshToken: payload.refreshToken,
-    },
-  });
-
-  return payload.accessToken;
+  await refreshPromise;
 };
 
 const forceLogoutToLogin = () => {
@@ -77,10 +60,11 @@ const forceLogoutToLogin = () => {
 };
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem(storageKeys.accessToken);
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
+  config.headers = config.headers || {};
+  const method = String(config.method || 'get').toLowerCase();
+  if (method === 'get') {
+    config.headers['Cache-Control'] = 'no-cache';
+    config.headers.Pragma = 'no-cache';
   }
   return config;
 });
@@ -96,7 +80,6 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Account/org disabled etc. — clear session even when access JWT is still valid (403)
     if (status === 403 && isSessionDeadStatus(status, message)) {
       forceLogoutToLogin();
       return Promise.reject(error);
@@ -114,14 +97,7 @@ apiClient.interceptors.response.use(
     original._retry = true;
 
     try {
-      if (!refreshPromise) {
-        refreshPromise = refreshAccessToken().finally(() => {
-          refreshPromise = null;
-        });
-      }
-      const accessToken = await refreshPromise;
-      original.headers = original.headers || {};
-      original.headers.Authorization = `Bearer ${accessToken}`;
+      await refreshSession();
       return apiClient(original);
     } catch {
       forceLogoutToLogin();
@@ -131,4 +107,4 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-export { shouldSkipRefresh, isSessionDeadStatus };
+export { shouldSkipRefresh, isSessionDeadStatus, refreshSession };

@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Zap } from 'lucide-react';
@@ -9,10 +10,20 @@ export function SetupPendingPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { account } = useSelector(selectAuth);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const loggingOutRef = useRef(false);
 
   const handleLogout = async () => {
-    await dispatch(logoutUser());
-    navigate('/login', { replace: true });
+    if (loggingOutRef.current) return;
+    loggingOutRef.current = true;
+    setLoggingOut(true);
+    try {
+      await dispatch(logoutUser());
+      navigate('/login', { replace: true });
+    } finally {
+      loggingOutRef.current = false;
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -24,9 +35,15 @@ export function SetupPendingPage() {
           </span>
           <p className="text-lg font-bold text-brand-700">RecruitAI</p>
         </div>
-        <Button type="button" variant="outline" className="gap-2" onClick={handleLogout}>
+        <Button
+          type="button"
+          variant="outline"
+          className="gap-2"
+          disabled={loggingOut}
+          onClick={handleLogout}
+        >
           <LogOut className="h-4 w-4" />
-          Log out
+          {loggingOut ? 'Signing out…' : 'Log out'}
         </Button>
       </header>
 

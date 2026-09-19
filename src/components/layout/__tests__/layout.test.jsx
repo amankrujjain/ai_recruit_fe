@@ -150,6 +150,50 @@ describe('TopBar', () => {
     expect(toast.success).toHaveBeenCalledWith('Signed out successfully');
   });
 
+  it('single-flights rapid Sign out clicks and closes the menu', async () => {
+    const user = userEvent.setup();
+    let resolveLogout;
+    logoutRequest.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveLogout = resolve;
+        })
+    );
+
+    renderWithProviders(<TopBar />, {
+      route: '/recruiter',
+      preloadedState: {
+        auth: {
+          account: {
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+            role: Roles.RECRUITER,
+            email: 'a@b.com',
+          },
+          token: 't',
+          loading: false,
+          error: null,
+          initialized: true,
+        },
+      },
+    });
+
+    await user.click(screen.getByText('Ada Lovelace').closest('button'));
+    const signOut = screen.getByRole('button', { name: /sign out/i });
+    fireEvent.click(signOut);
+    fireEvent.click(signOut);
+
+    await waitFor(() => expect(logoutRequest).toHaveBeenCalledTimes(1));
+    expect(toast.success).not.toHaveBeenCalled();
+
+    resolveLogout({});
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledTimes(1)
+    );
+    expect(toast.success).toHaveBeenCalledWith('Signed out successfully');
+    expect(logoutRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('shows org logo and handles password reset success/error', async () => {
     const user = userEvent.setup();
     requestPasswordResetEmailRequest.mockResolvedValueOnce({
