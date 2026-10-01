@@ -27,7 +27,7 @@ import {
   isCandidateEligible,
   isCandidateSelectable,
 } from '@/lib/candidateEligibility';
-import { getResumeStatusRequest } from '@/api/jobApi';
+import { getResumeStatusRequest, rescoreCandidateRequest, rescoreJobCandidatesRequest } from '@/api/jobApi';
 import {
   fetchJob,
   closeJob,
@@ -119,6 +119,8 @@ export function JobDetailPage() {
   const [parseProgress, setParseProgress] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [invitingId, setInvitingId] = useState(null);
+  const [rescoringId, setRescoringId] = useState(null);
+  const [bulkRescoring, setBulkRescoring] = useState(false);
   const stopPollRef = useRef(null);
   const watchedIdsRef = useRef([]);
   const itemsRef = useRef(items);
@@ -316,6 +318,11 @@ export function JobDetailPage() {
             message: `Parsing… ${status.completed + status.failed}/${status.total} finished`,
           }));
 
+          // Progressive UX: show candidates as soon as individual parses complete
+          if ((status.completed ?? 0) > 0 || (status.matched ?? 0) > 0) {
+            await loadCandidates();
+          }
+
           if (status.done) {
             await enterScoring(status);
           }
@@ -379,7 +386,9 @@ export function JobDetailPage() {
     const tick = async () => {
       if (cancelled || inFlight || parseProgressRef.current?.active) return;
       if (stopPollRef.current) return;
-      const pending = itemsRef.current.some((row) => row.overallMatch == null);
+      const pending = itemsRef.current.some(
+        (row) => row.overallMatch == null && !row.matchDetails?.failure
+      );
       if (!pending) return;
       if (Date.now() - startedAt >= MATCH_POLL_MAX_MS) return;
       inFlight = true;
@@ -621,6 +630,36 @@ const handleActivate = () => {
     } else toast.error(result.payload || 'Invite failed');
   };
 
+  const handleRescore = async (row) => {
+    if (!row?.candidateJobId) return;
+    setRescoringId(row.candidateJobId);
+    try {
+      await rescoreCandidateRequest(jobId, row.candidateJobId, { force: true });
+      toast.success('Rescore queued');
+      await loadCandidates();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Rescore failed');
+    } finally {
+      setRescoringId(null);
+    }
+  };
+
+  const handleBulkRescoreFailed = async () => {
+    setBulkRescoring(true);
+    try {
+      const { data } = await rescoreJobCandidatesRequest(jobId, { scope: 'failed', force: true });
+      const enqueued = data?.data?.enqueued ?? 0;
+      toast.success(enqueued ? `Rescore queued for ${enqueued} candidate(s)` : 'No failed scores to retry');
+      await loadCandidates();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Bulk rescore failed');
+    } finally {
+      setBulkRescoring(false);
+    }
+  };
+
+  const failedScoreCount = items.filter((row) => row.matchDetails?.failure).length;
+
   const busy = uploading || Boolean(parseProgress?.active);
 
   if (detailLoading && !job) {
@@ -696,19 +735,32 @@ return (
 
             <Card className="rounded-xl border-border shadow-none">
               <CardContent className="p-0 pt-0">
-                <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
                   <p className="text-xs text-muted">
-                    Refresh the list if a score is still pending after upload.
+                    Candidates appear as parsing finishes. Scores fill in moments later.
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={loadCandidates}
-                    disabled={loading}
-                    title="Refresh candidate list"
-                  >
-                    Refresh list
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {failedScoreCount > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleBulkRescoreFailed}
+                        disabled={bulkRescoring || loading}
+                        title="Retry scoring for failed rows"
+                      >
+                        {bulkRescoring ? 'Rescoring…' : `Rescore failed (${failedScoreCount})`}
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadCandidates}
+                      disabled={loading}
+                      title="Refresh candidate list"
+                    >
+                      Refresh list
+                    </Button>
+                  </div>
                 </div>
                 <div className="px-1 pb-2">
                   <CandidateTable
@@ -722,6 +774,8 @@ return (
                     onViewInterview={handleViewInterview}
                     onInviteOne={handleInviteOne}
                     onRefreshRow={loadCandidates}
+                    onRescore={handleRescore}
+                    rescoringId={rescoringId}
                     invitingId={invitingId}
                   />
                 </div>

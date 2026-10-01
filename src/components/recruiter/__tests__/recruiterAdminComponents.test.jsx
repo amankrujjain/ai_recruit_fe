@@ -147,6 +147,7 @@ describe('CandidateTable', () => {
     );
 
     expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText(/scoring/i)).toBeInTheDocument();
     expect(screen.getByText('88%')).toBeInTheDocument();
     expect(screen.getByText('Eligible')).toBeInTheDocument();
     expect(screen.getByText('Email sent')).toBeInTheDocument();
