@@ -17,10 +17,40 @@ import {
 } from '@/lib/candidateEligibility';
 import { cn } from '@/lib/utils';
 
-function MatchCell({ score }) {
-  if (score == null) {
-    return <span className="text-muted">—</span>;
+function MatchCell({ score, matchDetails, onRetry, retrying }) {
+  const failure = matchDetails?.failure;
+
+  if (failure) {
+    return (
+      <div className="flex min-w-[140px] max-w-[200px] flex-col gap-1">
+        <span className="text-xs font-medium text-red-600">Score failed</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-xs"
+          disabled={retrying}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRetry?.();
+          }}
+        >
+          <RefreshCw className={cn('mr-1 h-3 w-3', retrying && 'animate-spin')} aria-hidden />
+          {retrying ? 'Retrying…' : 'Retry'}
+        </Button>
+      </div>
+    );
   }
+
+  if (score == null) {
+    return (
+      <div className="flex min-w-[128px] items-center gap-2 text-sm text-muted">
+        <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+        <span>Scoring…</span>
+      </div>
+    );
+  }
+
   const value = Math.max(0, Math.min(100, Number(score)));
   return (
     <div className="flex min-w-[128px] max-w-[160px] items-center gap-2">
@@ -84,6 +114,8 @@ export function CandidateTable({
   onViewInterview,
   onInviteOne,
   onRefreshRow,
+  onRescore,
+  rescoringId,
   invitingId,
 }) {
   if (loading) {
@@ -184,7 +216,12 @@ export function CandidateTable({
                   </div>
                 </td>
                 <td className={cn('px-3 py-3', dimmed && 'opacity-70')}>
-                  <MatchCell score={row.overallMatch} />
+                  <MatchCell
+                    score={row.overallMatch}
+                    matchDetails={row.matchDetails}
+                    retrying={rescoringId === id}
+                    onRetry={() => onRescore?.(row)}
+                  />
                 </td>
                 <td className="px-3 py-3">
                   <EligibilityCell status={status} threshold={threshold} />

@@ -61,3 +61,11 @@ export const getResumeStatusRequest = (jobId, resumeFileIds = []) =>
     params: { ids: resumeFileIds.join(',') },
   });
 
+/** Re-enqueue deterministic (or openai) match for one candidate. */
+export const rescoreCandidateRequest = (jobId, candidateJobId, { force = true } = {}) =>
+  apiClient.post(`/jobs/${jobId}/candidates/${candidateJobId}/rescore`, { force });
+
+/** Bulk rescore for a job: scope = failed | unscored | all */
+export const rescoreJobCandidatesRequest = (jobId, { scope = 'failed', force = false } = {}) =>
+  apiClient.post(`/jobs/${jobId}/candidates/rescore`, { scope, force });
+
