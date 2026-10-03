@@ -24,7 +24,7 @@ import {
   validateAiSetup,
   validateRoleDetails,
 } from '@/components/recruiter/jobs/jobFormDraft';
-import { voiceToAgentFields } from '@/lib/voiceAgent';
+import { normalizeInterviewLanguage, voiceToAgentFields } from '@/lib/voiceAgent';
 
 function StepActions({
   onBack,
@@ -502,7 +502,9 @@ export function JobForm({ initial, saving, onSubmit, onCancel }) {
               ...next,
               voiceId: settings.voiceId,
               voiceName: settings.voiceName || current.voiceName,
-              interviewLanguage: settings.interviewLanguage || current.interviewLanguage,
+              interviewLanguage:
+                normalizeInterviewLanguage(settings.interviewLanguage)
+                || current.interviewLanguage,
             };
           if (!isJobFormDirty(current, baselineRef.current)) {
             baselineRef.current = next;
