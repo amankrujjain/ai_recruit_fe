@@ -511,7 +511,7 @@ const handleActivate = () => {
 
   const handleResume = async (fileOrFiles) => {
     const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
-    const resumeFileIds = [];
+    const parseResumeFileIds = [];
     let reused = 0;
     let failed = 0;
 
@@ -521,33 +521,41 @@ const handleActivate = () => {
         failed += 1;
         continue;
       }
-      if (result.payload?.reused) {
+      const isReuse = Boolean(result.payload?.reused);
+      if (isReuse) {
         reused += result.payload.reusedCount || 1;
-      }
-      const ids = collectResumeFileIds(result.payload);
-      for (const id of ids) {
-        if (!resumeFileIds.includes(id)) resumeFileIds.push(id);
-      }
-      if (result.payload?.reusedCount && !result.payload?.reused) {
-        reused += result.payload.reusedCount;
+      } else {
+        const ids = collectResumeFileIds(result.payload);
+        for (const id of ids) {
+          if (!parseResumeFileIds.includes(id)) parseResumeFileIds.push(id);
+        }
+        // Mixed ZIP: some entries reused inside a non-reused envelope
+        if (result.payload?.reusedCount) {
+          reused += result.payload.reusedCount;
+        }
       }
     }
 
-    if (failed && !resumeFileIds.length && !reused) {
+    if (failed && !parseResumeFileIds.length && !reused) {
       toast.error(files.length > 1 ? 'All uploads failed' : 'Upload failed');
       return;
     }
     if (failed) toast.warning(`${failed} file(s) failed to upload`);
     if (reused) toast.success(`${reused} resume(s) already on file — linked to this job`);
 
-    if (resumeFileIds.length) {
+    // Reused rows are linked synchronously — refresh list before/without parse poll.
+    if (reused) {
+      await loadCandidates();
+    }
+
+    if (parseResumeFileIds.length) {
       toast.message(
-        resumeFileIds.length > 1
-          ? `Upload complete — parsing ${resumeFileIds.length} files`
+        parseResumeFileIds.length > 1
+          ? `Upload complete — parsing ${parseResumeFileIds.length} files`
           : 'Upload complete — parsing started'
       );
-      watchResumeParse(resumeFileIds, files[0]?.name);
-    } else {
+      watchResumeParse(parseResumeFileIds, files[0]?.name);
+    } else if (!reused) {
       await loadCandidates();
     }
   };

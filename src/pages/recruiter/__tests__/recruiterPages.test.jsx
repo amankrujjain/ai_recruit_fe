@@ -760,32 +760,20 @@ describe('JobDetailPage', () => {
     expect(getResumeStatusRequest).not.toHaveBeenCalled();
   });
 
-  it('upload resume reused with resumeFileId still polls for scores', async () => {
+  it('upload resume reused with resumeFileId skips parse poll and refreshes list', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     uploadResumeRequest.mockResolvedValueOnce({
       data: { data: { reused: true, resumeFileId: 'rf-old' } },
     });
-    getResumeStatusRequest.mockResolvedValue({
-      data: {
-        data: {
-          done: true,
-          completed: 1,
-          failed: 0,
-          total: 1,
-          percent: 100,
-          matchingDone: true,
-          matched: 1,
-          files: [],
-        },
-      },
-    });
     renderDetail('/recruiter/jobs/job-1?tab=candidates');
 
+    const callsBefore = listCandidatesRequest.mock.calls.length;
     await user.click(await screen.findByRole('button', { name: 'Upload resume' }));
-    await waitFor(() => expect(getResumeStatusRequest).toHaveBeenCalled());
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith('Scoring complete — candidate list updated')
+      expect(toast.success).toHaveBeenCalledWith('1 resume(s) already on file — linked to this job')
     );
+    expect(getResumeStatusRequest).not.toHaveBeenCalled();
+    await waitFor(() => expect(listCandidatesRequest.mock.calls.length).toBeGreaterThan(callsBefore));
   });
 
   it('upload resume without resumeFileId refreshes candidates', async () => {

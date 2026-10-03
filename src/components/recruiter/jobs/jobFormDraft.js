@@ -1,6 +1,6 @@
 import { EmploymentType } from '@/lib/employmentType';
 import { AiRoundType } from '@/lib/aiRoundType';
-import { DEFAULT_AGENT_TONE, isHindiLanguage } from '@/lib/voiceAgent';
+import { DEFAULT_AGENT_TONE, isHindiLanguage, isInterviewLanguage, normalizeInterviewLanguage } from '@/lib/voiceAgent';
 
 export const EXPERIENCE_MAX_CAP = 15;
 export const MAX_ROUNDS = 3;
@@ -102,7 +102,7 @@ export function jobToForm(job) {
     voiceId: job.voiceId || '',
     voiceName: job.voiceName || '',
     voiceGender: job.voiceGender || '',
-    interviewLanguage: job.interviewLanguage || 'en',
+    interviewLanguage: normalizeInterviewLanguage(job.interviewLanguage) || 'en',
     voiceAccent: job.voiceAccent || '',
     voiceStyle: job.voiceStyle || DEFAULT_AGENT_TONE,
     agentSnapshot: job.agentSnapshot && typeof job.agentSnapshot === 'object' ? job.agentSnapshot : {},
@@ -205,8 +205,11 @@ export function validateAiSetup(form) {
   if (!form.voiceAccent) {
     return 'Select accent, gender, and language for the AI agent';
   }
+  if (!isInterviewLanguage(form.interviewLanguage)) {
+    return 'Interview language must be English or Hindi';
+  }
   if (!form.voiceId) {
-    return 'No AI agent matches accent, gender, language, and professional tone';
+    return 'Select an AI agent from the matching list';
   }
   if (isHindiLanguage(form.interviewLanguage) && String(form.voiceAccent).toLowerCase() !== 'indian') {
     return 'Hindi interviews need an Indian-accent voice';
