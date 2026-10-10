@@ -1,6 +1,7 @@
 const ROUND_STATUS_LABELS = {
   PENDING: 'Pending',
   INVITED: 'Invited',
+  INITIATING: 'Initiating',
   IN_PROGRESS: 'In progress',
   COMPLETED: 'Completed',
   FAILED: 'Failed',
@@ -31,6 +32,7 @@ export function callStatusToRoundStatus(callStatus) {
   const key = String(callStatus || '').toUpperCase();
   if (key === 'COMPLETED') return 'COMPLETED';
   if (key === 'FAILED' || key === 'NO_ANSWER') return 'FAILED';
+  if (key === 'INITIATING') return 'INITIATING';
   if (key === 'IN_PROGRESS') return 'IN_PROGRESS';
   if (key === 'CANCELLED') return 'CANCELLED';
   if (key === 'SCHEDULED' || key === 'RESCHEDULED') return 'INVITED';
@@ -43,7 +45,9 @@ export function pickDefaultRoundId(rounds = []) {
     (a, b) => (a.jobRound?.roundOrder || 0) - (b.jobRound?.roundOrder || 0)
   );
   const current = [...sorted].reverse().find((r) =>
-    ['IN_PROGRESS', 'INVITED', 'COMPLETED', 'FAILED'].includes(String(r.status || '').toUpperCase())
+    ['IN_PROGRESS', 'INITIATING', 'INVITED', 'COMPLETED', 'FAILED'].includes(
+      String(r.status || '').toUpperCase()
+    )
   );
   return (current || sorted[sorted.length - 1])?.jobRoundId || null;
 }
