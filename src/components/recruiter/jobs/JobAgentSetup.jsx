@@ -78,10 +78,6 @@ export function JobAgentSetup({ form, setForm, voices, voicesLoading }) {
         interviewLanguage: nextLanguage,
         voiceAccent: nextAccent,
         ...voiceToAgentFields(null),
-        // Preserve the criteria we just set (voiceToAgentFields clears agent ids only).
-        voiceGender: nextGender,
-        interviewLanguage: nextLanguage,
-        voiceAccent: nextAccent,
         voiceStyle: '',
       };
     });

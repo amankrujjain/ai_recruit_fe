@@ -17,6 +17,9 @@ describe('formatRoundLabel', () => {
   it('maps call statuses and picks scorecard by jobRoundId', () => {
     expect(callStatusToRoundStatus('NO_ANSWER')).toBe('FAILED');
     expect(callStatusToRoundStatus('COMPLETED')).toBe('COMPLETED');
+    expect(callStatusToRoundStatus('INITIATING')).toBe('INITIATING');
+    expect(callStatusToRoundStatus('IN_PROGRESS')).toBe('IN_PROGRESS');
+    expect(formatRoundLabel({ roundOrder: 1 }, 'INITIATING')).toBe('Round 1 — Initiating');
 
     const cards = [
       { jobRoundId: 'r1', summary: { overall: 1 } },
