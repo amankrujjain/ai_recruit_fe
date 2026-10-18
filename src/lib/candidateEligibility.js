@@ -80,6 +80,61 @@ export function hasOutreach(row) {
   return Boolean(row?.outreachRecords?.length);
 }
 
+export function hasInterviewInvite(row) {
+  return Boolean(row?.interviewInvites?.length);
+}
+
+/** Latest non-revoked invite, else latest row. */
+export function getLatestInterviewInvite(row) {
+  const invites = row?.interviewInvites;
+  if (!Array.isArray(invites) || !invites.length) return null;
+  const active = invites.find((i) => i.status && i.status !== 'REVOKED');
+  return active || invites[0];
+}
+
+/**
+ * IE-2 T2.8 invite SoT for recruiter labels.
+ * Prefer interview_invites over outreach pipeline / schedule alone.
+ */
+export const InviteDisplayStatus = Object.freeze({
+  NONE: 'NONE',
+  INVITED: 'INVITED', // SENT
+  OPENED: 'OPENED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED', // CONSUMED after successful/exhausted
+  EXPIRED: 'EXPIRED',
+  FAILED: 'FAILED', // REVOKED treated as replaced / not primary
+});
+
+const INVITE_LABELS = Object.freeze({
+  [InviteDisplayStatus.NONE]: 'No invite',
+  [InviteDisplayStatus.INVITED]: 'Invited',
+  [InviteDisplayStatus.OPENED]: 'Opened',
+  [InviteDisplayStatus.IN_PROGRESS]: 'In progress',
+  [InviteDisplayStatus.COMPLETED]: 'Completed',
+  [InviteDisplayStatus.EXPIRED]: 'Expired',
+  [InviteDisplayStatus.FAILED]: 'Failed',
+});
+
+const INVITE_STATUS_MAP = Object.freeze({
+  SENT: InviteDisplayStatus.INVITED,
+  OPENED: InviteDisplayStatus.OPENED,
+  IN_PROGRESS: InviteDisplayStatus.IN_PROGRESS,
+  CONSUMED: InviteDisplayStatus.COMPLETED,
+  EXPIRED: InviteDisplayStatus.EXPIRED,
+  REVOKED: InviteDisplayStatus.FAILED,
+});
+
+export function getInviteDisplayStatus(row) {
+  const invite = getLatestInterviewInvite(row);
+  if (!invite?.status) return InviteDisplayStatus.NONE;
+  return INVITE_STATUS_MAP[invite.status] || InviteDisplayStatus.INVITED;
+}
+
+export function formatInviteLabel(row) {
+  return INVITE_LABELS[getInviteDisplayStatus(row)] || INVITE_LABELS.NONE;
+}
+
 /** Candidate-table outreach statuses we surface in UI. */
 export const OutreachDisplayStatus = Object.freeze({
   NONE: 'NONE',
@@ -87,6 +142,13 @@ export const OutreachDisplayStatus = Object.freeze({
   EMAIL_QUEUED: 'EMAIL_QUEUED',
   EMAIL_SENT: 'EMAIL_SENT',
   SCHEDULED: 'SCHEDULED',
+  // IE-2 invite SoT mirrored into outreach cell when invites exist
+  INVITED: 'INVITED',
+  OPENED: 'OPENED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  EXPIRED: 'EXPIRED',
+  FAILED: 'FAILED',
 });
 
 const OUTREACH_LABELS = Object.freeze({
@@ -95,10 +157,23 @@ const OUTREACH_LABELS = Object.freeze({
   [OutreachDisplayStatus.EMAIL_QUEUED]: 'Email queued',
   [OutreachDisplayStatus.EMAIL_SENT]: 'Email sent',
   [OutreachDisplayStatus.SCHEDULED]: 'Scheduled', // booked — not interview result (C3)
+  [OutreachDisplayStatus.INVITED]: 'Invited',
+  [OutreachDisplayStatus.OPENED]: 'Opened',
+  [OutreachDisplayStatus.IN_PROGRESS]: 'In progress',
+  [OutreachDisplayStatus.COMPLETED]: 'Completed',
+  [OutreachDisplayStatus.EXPIRED]: 'Expired',
+  [OutreachDisplayStatus.FAILED]: 'Failed',
 });
 
 /** Invite/book SoT only. Do not use for post-call journey status (Decision uses candidate_jobs.status). */
 export function getOutreachDisplayStatus(row) {
+  // IE-2 T2.8: interview_invites win over outreach pipeline / schedule alone
+  if (hasInterviewInvite(row)) {
+    const inviteStatus = getInviteDisplayStatus(row);
+    if (inviteStatus !== InviteDisplayStatus.NONE) {
+      return inviteStatus;
+    }
+  }
   if (!hasOutreach(row)) return OutreachDisplayStatus.NONE;
   const status = row.outreachRecords[0]?.pipelineStatus;
   if (status === 'EMAIL_SENT') return OutreachDisplayStatus.EMAIL_SENT;

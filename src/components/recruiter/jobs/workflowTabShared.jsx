@@ -18,9 +18,15 @@ export function formatDate(value) {
 }
 
 export function statusVariant(status) {
-  if (['EMAIL_SENT', 'COMPLETED', 'SELECTED', 'HIRED'].includes(status)) return 'success';
-  if (['FAILED', 'REJECTED_MANUALLY', 'CANCELLED', 'NO_ANSWER'].includes(status)) return 'danger';
-  if (['EMAIL_QUEUED', 'SCHEDULED', 'IN_PROGRESS', 'SHORTLISTED'].includes(status)) return 'default';
+  if (['EMAIL_SENT', 'COMPLETED', 'SELECTED', 'HIRED', 'INVITED', 'OPENED'].includes(status)) {
+    return 'success';
+  }
+  if (['FAILED', 'REJECTED_MANUALLY', 'CANCELLED', 'NO_ANSWER', 'EXPIRED'].includes(status)) {
+    return 'danger';
+  }
+  if (['EMAIL_QUEUED', 'SCHEDULED', 'IN_PROGRESS', 'SHORTLISTED'].includes(status)) {
+    return 'default';
+  }
   return 'muted';
 }
 

@@ -64,6 +64,33 @@ describe('JobWorkflowTab / split tabs', () => {
     expect(getOutreachRequest).toHaveBeenCalledWith({ jobId: 'job-1' });
   });
 
+  it('T2.8: invite SoT labels Opened over outreach Email sent', async () => {
+    getOutreachRequest.mockResolvedValueOnce({
+      data: {
+        data: [{
+          candidateJobId: 'cj-2',
+          candidate: { name: 'Grace Hopper' },
+          outreachRecords: [{
+            channel: 'EMAIL',
+            pipelineStatus: 'EMAIL_SENT',
+            emailSentAt: '2026-08-29T10:00:00.000Z',
+          }],
+          interviewInvites: [{
+            inviteId: 'inv-1',
+            status: 'OPENED',
+            createdAt: '2026-08-29T09:00:00.000Z',
+          }],
+        }],
+      },
+    });
+
+    renderTab('outreach');
+
+    expect(await screen.findByText('Grace Hopper')).toBeInTheDocument();
+    expect(screen.getByText('Opened')).toBeInTheDocument();
+    expect(screen.queryByText('Email sent')).not.toBeInTheDocument();
+  });
+
   it('enables refresh list only after selecting more than one interview', async () => {
     const user = userEvent.setup();
     getInterviewsRequest.mockResolvedValue({

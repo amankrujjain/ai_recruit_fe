@@ -6,12 +6,16 @@ import {
   RefreshCell,
   SelectCell,
   WorkflowTabShell,
-  displayStatus,
   formatDate,
   getSelectionHint,
   statusVariant,
 } from '@/components/recruiter/jobs/workflowTabShared';
 import { Badge } from '@/components/ui/Badge';
+import {
+  formatOutreachLabel,
+  getLatestInterviewInvite,
+  getOutreachDisplayStatus,
+} from '@/lib/candidateEligibility';
 
 function OutreachTable({ rows, jobId, selectedIds, onToggle, onRefreshRow }) {
   return (
@@ -32,7 +36,12 @@ function OutreachTable({ rows, jobId, selectedIds, onToggle, onRefreshRow }) {
           {rows.map((row) => {
             const id = row.candidateJobId;
             const record = row.outreachRecords?.[0];
-            const round = record?.round || row.rounds?.find((item) => item.jobRound)?.jobRound;
+            const invite = getLatestInterviewInvite(row);
+            const display = getOutreachDisplayStatus(row);
+            const round =
+              invite?.jobRound
+              || record?.round
+              || row.rounds?.find((item) => item.jobRound)?.jobRound;
             const name = row.candidate?.name || 'candidate';
             return (
               <tr key={id} className="hover:bg-slate-50/70">
@@ -45,12 +54,12 @@ function OutreachTable({ rows, jobId, selectedIds, onToggle, onRefreshRow }) {
                 <td className="px-4 py-3 text-muted">{round?.name || 'Round 1'}</td>
                 <td className="px-4 py-3 text-muted">{record?.channel || 'EMAIL'}</td>
                 <td className="px-4 py-3">
-                  <Badge variant={statusVariant(record?.pipelineStatus)}>
-                    {displayStatus(record?.pipelineStatus)}
+                  <Badge variant={statusVariant(display)}>
+                    {formatOutreachLabel(row)}
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-muted">
-                  {formatDate(record?.emailSentAt || record?.createdAt)}
+                  {formatDate(invite?.createdAt || record?.emailSentAt || record?.createdAt)}
                 </td>
                 <RefreshCell onRefresh={() => onRefreshRow(id)} label={`Refresh ${name}`} />
               </tr>
@@ -110,7 +119,7 @@ export function OutreachTab({ jobId }) {
   return (
     <WorkflowTabShell
       title="Outreach"
-      description="Track every candidate invitation and response. Scheduled means booked, not call result."
+      description="Invite status from magic-link SoT (Invited, Opened, In progress, Completed, Expired). Not the post-call Decision status."
       headerHint={getSelectionHint(selectedIds.size)}
       loading={loading}
       error={error}

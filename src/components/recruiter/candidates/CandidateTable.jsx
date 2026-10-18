@@ -84,16 +84,26 @@ function OutreachCell({ row }) {
   }
 
   const variant =
-    display === OutreachDisplayStatus.EMAIL_SENT || display === OutreachDisplayStatus.SCHEDULED
+    display === OutreachDisplayStatus.EMAIL_SENT
+    || display === OutreachDisplayStatus.SCHEDULED
+    || display === OutreachDisplayStatus.INVITED
+    || display === OutreachDisplayStatus.OPENED
+    || display === OutreachDisplayStatus.COMPLETED
       ? 'success'
       : display === OutreachDisplayStatus.EMAIL_QUEUED
+        || display === OutreachDisplayStatus.IN_PROGRESS
         ? 'warning'
-        : 'muted';
+        : display === OutreachDisplayStatus.EXPIRED
+          || display === OutreachDisplayStatus.FAILED
+          ? 'danger'
+          : 'muted';
 
   const showMail =
     display === OutreachDisplayStatus.EMAIL_SENT
     || display === OutreachDisplayStatus.EMAIL_QUEUED
-    || display === OutreachDisplayStatus.SELECTED;
+    || display === OutreachDisplayStatus.SELECTED
+    || display === OutreachDisplayStatus.INVITED
+    || display === OutreachDisplayStatus.OPENED;
 
   return (
     <Badge variant={variant} className="gap-1.5 px-2.5 py-1 text-sm font-medium">
