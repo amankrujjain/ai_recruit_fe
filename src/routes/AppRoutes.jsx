@@ -7,6 +7,7 @@ import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 import { CandidateOutreachPage } from '@/pages/candidate/CandidateOutreachPage';
 import { CandidateSchedulePage } from '@/pages/candidate/CandidateSchedulePage';
+import { InterviewInvitePage } from '@/pages/candidate/InterviewInvitePage';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { PublicRoute } from '@/routes/PublicRoute';
 import { RoleRoute } from '@/routes/RoleRoute';
@@ -116,6 +117,7 @@ export function AppRoutes() {
       <Route element={<AuthLayout />}>
         <Route path="/candidate/outreach/:token" element={<CandidateOutreachPage />} />
         <Route path="/candidate/schedule/:token" element={<CandidateSchedulePage />} />
+        <Route path="/i/:token" element={<InterviewInvitePage />} />
       </Route>
 
       <Route element={<PublicRoute />}>
