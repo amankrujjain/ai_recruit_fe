@@ -51,7 +51,7 @@ export function InterviewInvitePage() {
       const message =
         code === 'CAPACITY'
           ? (err.response?.data?.message
-            || 'All interview lines are busy right now. Please try again in a few minutes.')
+            || 'All lines are busy, please try again in a few minutes.')
           : (err.response?.data?.message || 'Could not start the interview');
       toast.error(message);
     } finally {
